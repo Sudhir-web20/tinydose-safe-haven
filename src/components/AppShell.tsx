@@ -15,15 +15,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen clinic-bg">
       {/* Subtle ambient blobs */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-32 -left-24 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
-        <div className="absolute top-1/3 -right-24 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />
+        <div className="absolute -top-40 -left-32 h-[28rem] w-[28rem] rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute top-1/3 -right-32 h-[24rem] w-[24rem] rounded-full bg-accent/15 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-secondary/60 blur-3xl" />
       </div>
 
       {/* Top bar (desktop) / header (mobile) */}
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/70 border-b border-border/60">
+      <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/60 border-b border-border/60">
         <div className="mx-auto max-w-5xl px-5 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 group">
             <span className="relative inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 shadow-soft">

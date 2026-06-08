@@ -42,7 +42,7 @@ export function MedicineCard({ m, index = 0 }: { m: Medicine; index?: number }) 
       transition={{ duration: 0.35, delay: index * 0.04, ease: [0.22, 1, 0.36, 1] }}
       className="group soft-card p-4 flex gap-4 hover:-translate-y-0.5 hover:shadow-card transition-all"
     >
-      <div className="shrink-0 h-24 w-24 rounded-2xl overflow-hidden bg-secondary/60 ring-1 ring-border">
+      <div className="shrink-0 h-24 w-24 rounded-2xl overflow-hidden bg-secondary/70 inner-soft">
         <img src={m.imageUrl ?? medicineIllustration(m.name, m.type)} alt={m.name} className="h-full w-full object-cover" />
       </div>
       <div className="min-w-0 flex-1">
@@ -63,7 +63,7 @@ export function MedicineCard({ m, index = 0 }: { m: Medicine; index?: number }) 
           <StatusBadge status={status} />
         </div>
 
-        <div className="mt-3 flex items-end justify-between gap-3">
+        <div className="mt-3 pt-3 border-t border-border/60 flex items-end justify-between gap-3">
           <div className="text-[11px] text-muted-foreground">
             {status === "expired" ? (
               <span className="text-danger font-medium">Expired {Math.abs(days)}d ago</span>
