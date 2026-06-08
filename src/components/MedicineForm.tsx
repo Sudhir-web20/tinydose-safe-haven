@@ -127,13 +127,33 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
             transition={{ duration: 0.35 }}
             className="rounded-2xl border border-border bg-secondary/40 p-4 flex items-center gap-4"
           >
-            <div className="h-24 w-24 rounded-xl overflow-hidden bg-card ring-1 ring-border">
-              <img src={illustration} alt={name} className="h-full w-full object-cover" />
+            <div className="h-24 w-24 rounded-xl overflow-hidden bg-card ring-1 ring-border shrink-0">
+              <img
+                src={illustration}
+                alt={name}
+                className={cn(
+                  "h-full w-full object-cover transition-[filter] duration-500",
+                  aiImage && !aiFinal && "blur-md",
+                )}
+              />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="font-display text-base truncate">{name}</div>
               {generic && <div className="text-xs text-muted-foreground truncate">{generic}</div>}
-              <div className="text-[11px] text-muted-foreground mt-1">Illustrative image only.</div>
+              <div className="text-[11px] text-muted-foreground mt-1">
+                {aiImage ? (aiFinal ? "AI-generated preview." : "Generating…") : "Illustrative image only."}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={generateAi}
+                disabled={aiLoading}
+                className="mt-2 rounded-full h-8 px-3 text-xs"
+              >
+                {aiLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                {aiImage ? "Regenerate" : "Generate AI preview"}
+              </Button>
             </div>
           </motion.div>
         )}
