@@ -17,7 +17,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import {
   Popover,
@@ -171,7 +170,7 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
           <Field label="Type">
             <Select value={type} onValueChange={(v) => setType(v as MedicineType)}>
               <SelectTrigger className="h-11 rounded-xl bg-card">
-                <SelectValue />
+                <span>{type}</span>
               </SelectTrigger>
               <SelectContent>
                 {TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
