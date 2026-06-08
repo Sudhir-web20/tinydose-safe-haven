@@ -66,9 +66,17 @@ export const useMedicineStore = create<MedicineStore>()(
     }),
     {
       name: "tinydose-vault-v1",
-      storage: createJSONStorage(() =>
-        typeof window !== "undefined" ? window.localStorage : (undefined as never),
-      ),
+      storage: createJSONStorage(() => {
+        if (typeof window === "undefined") {
+          // No-op storage for SSR; client will rehydrate from real localStorage.
+          return {
+            getItem: () => null,
+            setItem: () => {},
+            removeItem: () => {},
+          };
+        }
+        return window.localStorage;
+      }),
       skipHydration: true,
     },
   ),
