@@ -43,7 +43,7 @@ export function MedicineCard({ m, index = 0 }: { m: Medicine; index?: number }) 
       className="group soft-card p-4 flex gap-4 hover:-translate-y-0.5 hover:shadow-card transition-all"
     >
       <div className="shrink-0 h-24 w-24 rounded-2xl overflow-hidden bg-secondary/60 ring-1 ring-border">
-        <img src={medicineIllustration(m.name, m.type)} alt={m.name} className="h-full w-full object-cover" />
+        <img src={m.imageUrl ?? medicineIllustration(m.name, m.type)} alt={m.name} className="h-full w-full object-cover" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">

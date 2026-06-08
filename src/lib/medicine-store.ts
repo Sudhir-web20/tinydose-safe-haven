@@ -24,6 +24,7 @@ export interface Medicine {
   reminders: Reminders;
   finished: boolean;
   createdAt: string;
+  imageUrl?: string;
 }
 
 interface MedicineStore {

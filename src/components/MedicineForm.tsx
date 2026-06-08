@@ -55,9 +55,9 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
     initial?.reminders ?? { d60: true, d30: true, d7: true, d0: true },
   );
   const [error, setError] = useState<string | null>(null);
-  const [aiImage, setAiImage] = useState<string | null>(null);
+  const [aiImage, setAiImage] = useState<string | null>(initial?.imageUrl ?? null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiFinal, setAiFinal] = useState(false);
+  const [aiFinal, setAiFinal] = useState(!!initial?.imageUrl);
 
   const svgIllustration = useMemo(
     () => (name.trim() ? medicineIllustration(name, type) : null),
@@ -108,6 +108,7 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
       doctor: doctor.trim() || undefined,
       notes: notes.trim() || undefined,
       reminders,
+      imageUrl: aiImage && aiFinal ? aiImage : undefined,
     });
   };
 
