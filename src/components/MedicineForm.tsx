@@ -13,13 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { SafetyNote } from "./SafetyNote";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -169,14 +162,22 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
             />
           </Field>
           <Field label="Type">
-            <Select value={type} onValueChange={(v) => setType(v as MedicineType)}>
-              <SelectTrigger className="h-11 rounded-xl bg-card">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value as MedicineType)}
+                className="flex h-11 w-full appearance-none items-center rounded-xl border border-input bg-card px-3 pr-10 text-sm text-foreground shadow-sm outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                ▾
+              </span>
+            </div>
           </Field>
         </div>
       </div>
