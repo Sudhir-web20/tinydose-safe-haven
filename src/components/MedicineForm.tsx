@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { MedicineAutocomplete } from "./MedicineAutocomplete";
 import { MonthYearPicker } from "./MonthYearPicker";
 import { medicineIllustration } from "@/lib/medicine-illustration";
+import { streamImage } from "@/lib/streamImage";
 import type { MedicineSuggestion, MedicineType } from "@/lib/medicines-db";
 import type { Medicine } from "@/lib/medicine-store";
 import { Label } from "@/components/ui/label";
@@ -24,9 +25,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Sparkles, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const TYPES: MedicineType[] = ["Syrup", "Drops", "Tablet", "Cream", "Ointment", "Inhaler", "Other"];
 
@@ -53,11 +55,36 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
     initial?.reminders ?? { d60: true, d30: true, d7: true, d0: true },
   );
   const [error, setError] = useState<string | null>(null);
+  const [aiImage, setAiImage] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiFinal, setAiFinal] = useState(false);
 
-  const illustration = useMemo(
+  const svgIllustration = useMemo(
     () => (name.trim() ? medicineIllustration(name, type) : null),
     [name, type],
   );
+  const illustration = aiImage ?? svgIllustration;
+
+  const generateAi = async () => {
+    if (!name.trim()) {
+      toast.error("Enter a medicine name first");
+      return;
+    }
+    setAiLoading(true);
+    setAiFinal(false);
+    setAiImage(null);
+    try {
+      const prompt = `A premium, soft, minimal product photograph of a baby medicine ${type.toLowerCase()} named "${name.trim()}", on a warm cream background (#FAF7F2), soft natural lighting, calm European pharmacy aesthetic, no text, square composition.`;
+      await streamImage("/api/generate-image", prompt, (url, isFinal) => {
+        setAiImage(url);
+        if (isFinal) setAiFinal(true);
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to generate image");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   useEffect(() => setError(null), [name, month, year]);
 
