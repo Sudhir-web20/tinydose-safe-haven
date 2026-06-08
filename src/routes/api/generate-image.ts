@@ -12,9 +12,13 @@ export const Route = createFileRoute("/api/generate-image")({
           method: "POST",
           headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image",
+            model: "openai/gpt-image-2",
             prompt,
+            quality: "low",
+            size: "1024x1024",
+            n: 1,
             stream: true,
+            partial_images: 1,
           }),
         });
         if (!upstream.ok || !upstream.body) {
