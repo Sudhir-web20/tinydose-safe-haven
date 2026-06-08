@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type { MedicineType } from "./medicines-db";
 
 export type MedicineStatus = "safe" | "soon" | "critical" | "expired" | "finished";
@@ -63,7 +63,13 @@ export const useMedicineStore = create<MedicineStore>()(
           ),
         })),
     }),
-    { name: "tinydose-vault-v1" },
+    {
+      name: "tinydose-vault-v1",
+      storage: createJSONStorage(() =>
+        typeof window !== "undefined" ? window.localStorage : (undefined as never),
+      ),
+      skipHydration: true,
+    },
   ),
 );
 
