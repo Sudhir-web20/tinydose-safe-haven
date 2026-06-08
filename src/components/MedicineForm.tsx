@@ -158,11 +158,9 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
                 {aiLoading && <Loader2 className="h-3 w-3 animate-spin" />}
                 {!aiImage && !aiLoading && <Sparkles className="h-3 w-3" />}
                 {aiLoading
-                  ? "Generating AI preview…"
+                  ? "Finding product photo…"
                   : aiImage
-                    ? aiFinal
-                      ? "AI-generated preview."
-                      : "Refining…"
+                    ? "Product photo from web."
                     : "Illustrative preview."}
               </div>
             </div>
