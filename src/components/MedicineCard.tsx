@@ -63,7 +63,7 @@ export function MedicineCard({ m, index = 0 }: { m: Medicine; index?: number }) 
           <StatusBadge status={status} />
         </div>
 
-        <div className="mt-3 flex items-end justify-between gap-3">
+        <div className="mt-3 pt-3 border-t border-border/60 flex items-end justify-between gap-3">
           <div className="text-[11px] text-muted-foreground">
             {status === "expired" ? (
               <span className="text-danger font-medium">Expired {Math.abs(days)}d ago</span>
