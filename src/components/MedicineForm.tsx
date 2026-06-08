@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { MedicineAutocomplete } from "./MedicineAutocomplete";
 import { MonthYearPicker } from "./MonthYearPicker";
 import { medicineIllustration } from "@/lib/medicine-illustration";
-import { streamImage } from "@/lib/streamImage";
+
 import type { MedicineSuggestion, MedicineType } from "@/lib/medicines-db";
 import type { Medicine } from "@/lib/medicine-store";
 import { Label } from "@/components/ui/label";
@@ -58,32 +58,43 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
   );
   const illustration = aiImage ?? svgIllustration;
 
-  const generateAi = async (medName: string, medType: MedicineType) => {
+  const fetchImage = async (medName: string, medType: MedicineType, signal: AbortSignal) => {
     setAiLoading(true);
     setAiFinal(false);
-    setAiImage(null);
     try {
-      const prompt = `A premium, soft, minimal product photograph of a baby medicine ${medType.toLowerCase()} named "${medName.trim()}", on a warm cream background (#FAF7F2), soft natural lighting, calm European pharmacy aesthetic, no text, square composition.`;
-      await streamImage("/api/generate-image", prompt, (url, isFinal) => {
-        setAiImage(url);
-        if (isFinal) setAiFinal(true);
+      const res = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: `${medName} ${medType} baby medicine` }),
+        signal,
       });
+      if (!res.ok) throw new Error(`Search failed (${res.status})`);
+      const data = (await res.json()) as { image?: string; thumbnail?: string };
+      const url = data.image ?? data.thumbnail;
+      if (!url) throw new Error("No image found");
+      setAiImage(url);
+      setAiFinal(true);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to generate image");
+      if ((e as Error).name === "AbortError") return;
+      toast.error(e instanceof Error ? e.message : "Failed to fetch image");
     } finally {
       setAiLoading(false);
     }
   };
 
-  // Auto-generate AI image when the user has typed a sufficiently complete name.
+  // Auto-fetch a real product photo when the user types a name.
   useEffect(() => {
     const trimmed = name.trim();
     if (trimmed.length < 3) return;
     if (initial?.imageUrl && trimmed === initial.name && type === initial.type) return;
+    const controller = new AbortController();
     const handle = setTimeout(() => {
-      generateAi(trimmed, type);
-    }, 800);
-    return () => clearTimeout(handle);
+      fetchImage(trimmed, type, controller.signal);
+    }, 600);
+    return () => {
+      clearTimeout(handle);
+      controller.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, type]);
 
