@@ -53,32 +53,32 @@
 
 :root {
   --radius: 1rem;
-  /* Quiet luxury baby-care palette */
-  --background: oklch(0.974 0.008 80);          /* #FAF7F2 */
-  --foreground: oklch(0.27 0.012 175);          /* #24312E */
+  /* Premium pediatric care palette */
+  --background: oklch(0.972 0.008 90);           /* #F7F5EF */
+  --foreground: oklch(0.255 0.012 175);          /* #1F2A27 */
   --card: oklch(1 0 0);                          /* #FFFFFF */
-  --card-foreground: oklch(0.27 0.012 175);
+  --card-foreground: oklch(0.255 0.012 175);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.27 0.012 175);
-  --primary: oklch(0.74 0.045 160);              /* #8FB7A5 sage */
+  --popover-foreground: oklch(0.255 0.012 175);
+  --primary: oklch(0.69 0.045 162);              /* #7EA896 medical green */
   --primary-foreground: oklch(0.99 0.005 80);
-  --secondary: oklch(0.955 0.008 80);
-  --secondary-foreground: oklch(0.27 0.012 175);
-  --muted: oklch(0.955 0.008 80);
-  --muted-foreground: oklch(0.58 0.012 170);     /* #7C8A84 */
-  --accent: oklch(0.82 0.058 35);                /* #E8B4A2 peach */
-  --accent-foreground: oklch(0.27 0.012 175);
+  --secondary: oklch(0.948 0.01 85);             /* #F1EEE7 */
+  --secondary-foreground: oklch(0.255 0.012 175);
+  --muted: oklch(0.948 0.01 85);
+  --muted-foreground: oklch(0.55 0.012 170);     /* #6F7C77 */
+  --accent: oklch(0.84 0.045 60);                /* warm cream accent */
+  --accent-foreground: oklch(0.255 0.012 175);
   --destructive: oklch(0.65 0.155 25);
   --destructive-foreground: oklch(0.99 0.005 80);
   --warning: oklch(0.76 0.13 70);                /* #D9A441 */
   --warning-foreground: oklch(0.25 0.02 70);
   --danger: oklch(0.66 0.155 22);                /* #D96C6C */
   --danger-foreground: oklch(0.99 0.005 80);
-  --success: oklch(0.74 0.075 160);
+  --success: oklch(0.7 0.075 162);
   --success-foreground: oklch(0.99 0.005 80);
-  --border: oklch(0.92 0.008 80);
-  --input: oklch(0.94 0.008 80);
-  --ring: oklch(0.74 0.045 160);
+  --border: oklch(0.905 0.012 85);               /* #E4DED3 */
+  --input: oklch(0.93 0.01 85);
+  --ring: oklch(0.69 0.045 162);
   --chart-1: oklch(0.74 0.045 160);
   --chart-2: oklch(0.82 0.058 35);
   --chart-3: oklch(0.76 0.13 70);
