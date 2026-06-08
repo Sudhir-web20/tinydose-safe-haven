@@ -58,16 +58,12 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
   );
   const illustration = aiImage ?? svgIllustration;
 
-  const generateAi = async () => {
-    if (!name.trim()) {
-      toast.error("Enter a medicine name first");
-      return;
-    }
+  const generateAi = async (medName: string, medType: MedicineType) => {
     setAiLoading(true);
     setAiFinal(false);
     setAiImage(null);
     try {
-      const prompt = `A premium, soft, minimal product photograph of a baby medicine ${type.toLowerCase()} named "${name.trim()}", on a warm cream background (#FAF7F2), soft natural lighting, calm European pharmacy aesthetic, no text, square composition.`;
+      const prompt = `A premium, soft, minimal product photograph of a baby medicine ${medType.toLowerCase()} named "${medName.trim()}", on a warm cream background (#FAF7F2), soft natural lighting, calm European pharmacy aesthetic, no text, square composition.`;
       await streamImage("/api/generate-image", prompt, (url, isFinal) => {
         setAiImage(url);
         if (isFinal) setAiFinal(true);
@@ -79,7 +75,20 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
     }
   };
 
+  // Auto-generate AI image when the user has typed a sufficiently complete name.
+  useEffect(() => {
+    const trimmed = name.trim();
+    if (trimmed.length < 3) return;
+    if (initial?.imageUrl && trimmed === initial.name && type === initial.type) return;
+    const handle = setTimeout(() => {
+      generateAi(trimmed, type);
+    }, 800);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, type]);
+
   useEffect(() => setError(null), [name, month, year]);
+
 
   const handleSelect = (s: MedicineSuggestion) => {
     setName(s.name);
