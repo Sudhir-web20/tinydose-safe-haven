@@ -14,6 +14,7 @@ import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as AddRouteImport } from './routes/add'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EditIdRouteImport } from './routes/edit.$id'
+import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 
 const MedicinesRoute = MedicinesRouteImport.update({
   id: '/medicines',
@@ -40,12 +41,18 @@ const EditIdRoute = EditIdRouteImport.update({
   path: '/edit/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
+  id: '/api/generate-image',
+  path: '/api/generate-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/add': typeof AddRoute
   '/calendar': typeof CalendarRoute
   '/medicines': typeof MedicinesRoute
+  '/api/generate-image': typeof ApiGenerateImageRoute
   '/edit/$id': typeof EditIdRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/add': typeof AddRoute
   '/calendar': typeof CalendarRoute
   '/medicines': typeof MedicinesRoute
+  '/api/generate-image': typeof ApiGenerateImageRoute
   '/edit/$id': typeof EditIdRoute
 }
 export interface FileRoutesById {
@@ -61,14 +69,34 @@ export interface FileRoutesById {
   '/add': typeof AddRoute
   '/calendar': typeof CalendarRoute
   '/medicines': typeof MedicinesRoute
+  '/api/generate-image': typeof ApiGenerateImageRoute
   '/edit/$id': typeof EditIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/add' | '/calendar' | '/medicines' | '/edit/$id'
+  fullPaths:
+    | '/'
+    | '/add'
+    | '/calendar'
+    | '/medicines'
+    | '/api/generate-image'
+    | '/edit/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/add' | '/calendar' | '/medicines' | '/edit/$id'
-  id: '__root__' | '/' | '/add' | '/calendar' | '/medicines' | '/edit/$id'
+  to:
+    | '/'
+    | '/add'
+    | '/calendar'
+    | '/medicines'
+    | '/api/generate-image'
+    | '/edit/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/add'
+    | '/calendar'
+    | '/medicines'
+    | '/api/generate-image'
+    | '/edit/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +104,7 @@ export interface RootRouteChildren {
   AddRoute: typeof AddRoute
   CalendarRoute: typeof CalendarRoute
   MedicinesRoute: typeof MedicinesRoute
+  ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   EditIdRoute: typeof EditIdRoute
 }
 
@@ -116,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EditIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/generate-image': {
+      id: '/api/generate-image'
+      path: '/api/generate-image'
+      fullPath: '/api/generate-image'
+      preLoaderRoute: typeof ApiGenerateImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -124,6 +160,7 @@ const rootRouteChildren: RootRouteChildren = {
   AddRoute: AddRoute,
   CalendarRoute: CalendarRoute,
   MedicinesRoute: MedicinesRoute,
+  ApiGenerateImageRoute: ApiGenerateImageRoute,
   EditIdRoute: EditIdRoute,
 }
 export const routeTree = rootRouteImport
