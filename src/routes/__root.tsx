@@ -120,14 +120,6 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
-  useEffect(() => {
-    // Rehydrate persisted Zustand store on the client after mount.
-    // skipHydration is enabled to avoid SSR/CSR mismatch.
-    void import("../lib/medicine-store").then((m) =>
-      m.useMedicineStore.persist.rehydrate(),
-    );
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
