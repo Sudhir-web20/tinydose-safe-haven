@@ -2,6 +2,15 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { MedicineType } from "./medicines-db";
 
+const medicineStorage =
+  typeof window === "undefined"
+    ? undefined
+    : createJSONStorage<Pick<MedicineStore, "medicines">>(() => ({
+        getItem: (name) => window.localStorage.getItem(name),
+        setItem: (name, value) => window.localStorage.setItem(name, value),
+        removeItem: (name) => window.localStorage.removeItem(name),
+      }));
+
 export type MedicineStatus = "safe" | "soon" | "critical" | "expired" | "finished";
 
 export interface Reminders {
@@ -29,16 +38,20 @@ export interface Medicine {
 
 interface MedicineStore {
   medicines: Medicine[];
+  hydrated: boolean;
   add: (m: Omit<Medicine, "id" | "createdAt" | "finished">) => void;
   update: (id: string, patch: Partial<Medicine>) => void;
   remove: (id: string) => void;
   markFinished: (id: string) => void;
+  setHydrated: (hydrated: boolean) => void;
 }
 
 export const useMedicineStore = create<MedicineStore>()(
   persist(
     (set) => ({
       medicines: [],
+      hydrated: false,
+      setHydrated: (hydrated) => set({ hydrated }),
       add: (m) =>
         set((s) => ({
           medicines: [
@@ -66,9 +79,31 @@ export const useMedicineStore = create<MedicineStore>()(
     }),
     {
       name: "tinydose-vault-v1",
-      storage: typeof window !== "undefined"
-        ? createJSONStorage(() => window.localStorage)
-        : undefined,
+      storage: medicineStorage,
+      skipHydration: true,
+      partialize: (state) => ({ medicines: state.medicines }),
+      version: 1,
+      migrate: (persistedState) => {
+        if (
+          persistedState &&
+          typeof persistedState === "object" &&
+          "medicines" in persistedState &&
+          Array.isArray((persistedState as { medicines?: unknown }).medicines)
+        ) {
+          return {
+            medicines: (persistedState as { medicines: Medicine[] }).medicines,
+            hydrated: true,
+          };
+        }
+
+        return { medicines: [], hydrated: true };
+      },
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error("Failed to rehydrate medicine store", error);
+        }
+        state?.setHydrated(true);
+      },
     },
   ),
 );

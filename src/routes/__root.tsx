@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { useMedicineStore } from "@/lib/medicine-store";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -119,11 +120,24 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const hydrated = useMedicineStore((s) => s.hydrated);
+
+  useEffect(() => {
+    useMedicineStore.persist.rehydrate();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      {hydrated ? (
+        <Outlet />
+      ) : (
+        <div className="flex min-h-screen items-center justify-center bg-background px-4">
+          <div className="text-center">
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-border border-t-primary" />
+            <p className="mt-4 text-sm text-muted-foreground">Restoring your saved medicines…</p>
+          </div>
+        </div>
+      )}
       <Toaster position="top-center" />
     </QueryClientProvider>
   );
