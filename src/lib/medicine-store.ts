@@ -29,16 +29,20 @@ export interface Medicine {
 
 interface MedicineStore {
   medicines: Medicine[];
+  hydrated: boolean;
   add: (m: Omit<Medicine, "id" | "createdAt" | "finished">) => void;
   update: (id: string, patch: Partial<Medicine>) => void;
   remove: (id: string) => void;
   markFinished: (id: string) => void;
+  setHydrated: (hydrated: boolean) => void;
 }
 
 export const useMedicineStore = create<MedicineStore>()(
   persist(
     (set) => ({
       medicines: [],
+      hydrated: false,
+      setHydrated: (hydrated) => set({ hydrated }),
       add: (m) =>
         set((s) => ({
           medicines: [
@@ -69,6 +73,14 @@ export const useMedicineStore = create<MedicineStore>()(
       storage: typeof window !== "undefined"
         ? createJSONStorage(() => window.localStorage)
         : undefined,
+      skipHydration: true,
+      partialize: (state) => ({ medicines: state.medicines }),
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error("Failed to rehydrate medicine store", error);
+        }
+        state?.setHydrated(true);
+      },
     },
   ),
 );
