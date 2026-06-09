@@ -75,6 +75,22 @@ export const useMedicineStore = create<MedicineStore>()(
         : undefined,
       skipHydration: true,
       partialize: (state) => ({ medicines: state.medicines }),
+      version: 1,
+      migrate: (persistedState) => {
+        if (
+          persistedState &&
+          typeof persistedState === "object" &&
+          "medicines" in persistedState &&
+          Array.isArray((persistedState as { medicines?: unknown }).medicines)
+        ) {
+          return {
+            medicines: (persistedState as { medicines: Medicine[] }).medicines,
+            hydrated: true,
+          };
+        }
+
+        return { medicines: [], hydrated: true };
+      },
       onRehydrateStorage: () => (state, error) => {
         if (error) {
           console.error("Failed to rehydrate medicine store", error);
