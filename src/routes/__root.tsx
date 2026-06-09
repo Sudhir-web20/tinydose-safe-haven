@@ -126,12 +126,6 @@ function RootComponent() {
     useMedicineStore.persist.rehydrate();
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const dump = window.localStorage.getItem("tinydose-vault-v1");
-    console.log("[medicine-store] hydrated", hydrated, dump);
-  }, [hydrated]);
-
   return (
     <QueryClientProvider client={queryClient}>
       {hydrated ? (

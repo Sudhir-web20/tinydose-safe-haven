@@ -6,19 +6,9 @@ const medicineStorage =
   typeof window === "undefined"
     ? undefined
     : createJSONStorage<Pick<MedicineStore, "medicines">>(() => ({
-        getItem: (name) => {
-          const value = window.localStorage.getItem(name);
-          console.log("[medicine-store:getItem]", name, value);
-          return value;
-        },
-        setItem: (name, value) => {
-          console.log("[medicine-store:setItem]", name, value);
-          window.localStorage.setItem(name, value);
-        },
-        removeItem: (name) => {
-          console.log("[medicine-store:removeItem]", name);
-          window.localStorage.removeItem(name);
-        },
+        getItem: (name) => window.localStorage.getItem(name),
+        setItem: (name, value) => window.localStorage.setItem(name, value),
+        removeItem: (name) => window.localStorage.removeItem(name),
       }));
 
 export type MedicineStatus = "safe" | "soon" | "critical" | "expired" | "finished";
