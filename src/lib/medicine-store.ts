@@ -2,6 +2,25 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { MedicineType } from "./medicines-db";
 
+const medicineStorage =
+  typeof window === "undefined"
+    ? undefined
+    : createJSONStorage<Pick<MedicineStore, "medicines">>(() => ({
+        getItem: (name) => {
+          const value = window.localStorage.getItem(name);
+          console.log("[medicine-store:getItem]", name, value);
+          return value;
+        },
+        setItem: (name, value) => {
+          console.log("[medicine-store:setItem]", name, value);
+          window.localStorage.setItem(name, value);
+        },
+        removeItem: (name) => {
+          console.log("[medicine-store:removeItem]", name);
+          window.localStorage.removeItem(name);
+        },
+      }));
+
 export type MedicineStatus = "safe" | "soon" | "critical" | "expired" | "finished";
 
 export interface Reminders {
@@ -70,9 +89,7 @@ export const useMedicineStore = create<MedicineStore>()(
     }),
     {
       name: "tinydose-vault-v1",
-      storage: typeof window !== "undefined"
-        ? createJSONStorage(() => window.localStorage)
-        : undefined,
+      storage: medicineStorage,
       skipHydration: true,
       partialize: (state) => ({ medicines: state.medicines }),
       version: 1,
