@@ -121,9 +121,9 @@ export function ensureMedicineStoreHydrated() {
   }
 
   if (!hydrationPromise) {
-    hydrationPromise = useMedicineStore.persist
-      .rehydrate()
-      .catch((error) => {
+    hydrationPromise = Promise.resolve()
+      .then(() => useMedicineStore.persist.rehydrate())
+      .catch((error: unknown) => {
         console.error("Failed to rehydrate medicine store", error);
       })
       .finally(() => {
