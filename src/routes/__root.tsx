@@ -122,10 +122,6 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const hydrated = useMedicineStore((s) => s.hydrated);
 
-  useEffect(() => {
-    useMedicineStore.persist.rehydrate();
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       {hydrated ? (
