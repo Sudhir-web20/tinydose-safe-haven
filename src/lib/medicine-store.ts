@@ -1,15 +1,16 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
 import type { MedicineType } from "./medicines-db";
 
-const medicineStorage =
-  typeof window === "undefined"
-    ? undefined
-    : createJSONStorage<Pick<MedicineStore, "medicines">>(() => ({
-        getItem: (name) => window.localStorage.getItem(name),
-        setItem: (name, value) => window.localStorage.setItem(name, value),
-        removeItem: (name) => window.localStorage.removeItem(name),
-      }));
+const noopStorage: StateStorage = {
+  getItem: () => null,
+  setItem: () => undefined,
+  removeItem: () => undefined,
+};
+
+const medicineStorage = createJSONStorage<Pick<MedicineStore, "medicines">>(() =>
+  typeof window === "undefined" ? noopStorage : window.localStorage,
+);
 
 export type MedicineStatus = "safe" | "soon" | "critical" | "expired" | "finished";
 
@@ -92,11 +93,10 @@ export const useMedicineStore = create<MedicineStore>()(
         ) {
           return {
             medicines: (persistedState as { medicines: Medicine[] }).medicines,
-            hydrated: true,
           };
         }
 
-        return { medicines: [], hydrated: true };
+        return { medicines: [] };
       },
       onRehydrateStorage: () => (state, error) => {
         if (error) {
@@ -107,6 +107,36 @@ export const useMedicineStore = create<MedicineStore>()(
     },
   ),
 );
+
+let hydrationPromise: Promise<void> | null = null;
+
+export function ensureMedicineStoreHydrated() {
+  if (typeof window === "undefined") return Promise.resolve();
+
+  if (useMedicineStore.persist.hasHydrated()) {
+    if (!useMedicineStore.getState().hydrated) {
+      useMedicineStore.getState().setHydrated(true);
+    }
+    return Promise.resolve();
+  }
+
+  if (!hydrationPromise) {
+    hydrationPromise = useMedicineStore.persist
+      .rehydrate()
+      .catch((error) => {
+        console.error("Failed to rehydrate medicine store", error);
+      })
+      .finally(() => {
+        useMedicineStore.getState().setHydrated(true);
+      });
+  }
+
+  return hydrationPromise;
+}
+
+if (typeof window !== "undefined") {
+  void ensureMedicineStoreHydrated();
+}
 
 export function expiryDate(m: Pick<Medicine, "expiryMonth" | "expiryYear">): Date {
   // End of expiry month
