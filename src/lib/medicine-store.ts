@@ -1,16 +1,10 @@
+import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
 import type { MedicineType } from "./medicines-db";
 
-const noopStorage: StateStorage = {
-  getItem: () => null,
-  setItem: () => undefined,
-  removeItem: () => undefined,
-};
-
-const medicineStorage = createJSONStorage<Pick<MedicineStore, "medicines">>(() =>
-  typeof window === "undefined" ? noopStorage : window.localStorage,
-);
+const STORAGE_KEY = "tinydose-vault-v1";
+const BACKUP_STORAGE_KEY = `${STORAGE_KEY}:last-good`;
 
 export type MedicineStatus = "safe" | "soon" | "critical" | "expired" | "finished";
 
@@ -39,20 +33,61 @@ export interface Medicine {
 
 interface MedicineStore {
   medicines: Medicine[];
-  hydrated: boolean;
   add: (m: Omit<Medicine, "id" | "createdAt" | "finished">) => void;
   update: (id: string, patch: Partial<Medicine>) => void;
   remove: (id: string) => void;
   markFinished: (id: string) => void;
-  setHydrated: (hydrated: boolean) => void;
 }
+
+interface PersistedMedicineState {
+  medicines: Medicine[];
+}
+
+function extractPersistedMedicines(value: string | null | undefined): Medicine[] {
+  if (!value) return [];
+
+  try {
+    const parsed = JSON.parse(value) as { state?: unknown };
+    const state = parsed?.state;
+
+    if (
+      state &&
+      typeof state === "object" &&
+      "medicines" in state &&
+      Array.isArray((state as { medicines?: unknown }).medicines)
+    ) {
+      return (state as { medicines: Medicine[] }).medicines;
+    }
+  } catch (error) {
+    console.error("Failed to parse persisted medicine data", error);
+  }
+
+  return [];
+}
+
+const browserMedicineStorage: StateStorage = {
+  getItem: (name) => window.localStorage.getItem(name),
+  setItem: (name, value) => {
+    window.localStorage.setItem(name, value);
+
+    if (extractPersistedMedicines(value).length > 0) {
+      window.localStorage.setItem(BACKUP_STORAGE_KEY, value);
+    }
+  },
+  removeItem: (name) => {
+    window.localStorage.removeItem(name);
+  },
+};
+
+const medicineStorage =
+  typeof window !== "undefined"
+    ? createJSONStorage<PersistedMedicineState>(() => browserMedicineStorage)
+    : undefined;
 
 export const useMedicineStore = create<MedicineStore>()(
   persist(
     (set) => ({
       medicines: [],
-      hydrated: false,
-      setHydrated: (hydrated) => set({ hydrated }),
       add: (m) =>
         set((s) => ({
           medicines: [
@@ -79,9 +114,8 @@ export const useMedicineStore = create<MedicineStore>()(
         })),
     }),
     {
-      name: "tinydose-vault-v1",
+      name: STORAGE_KEY,
       storage: medicineStorage,
-      skipHydration: true,
       partialize: (state) => ({ medicines: state.medicines }),
       version: 1,
       migrate: (persistedState) => {
@@ -98,44 +132,61 @@ export const useMedicineStore = create<MedicineStore>()(
 
         return { medicines: [] };
       },
-      onRehydrateStorage: () => (state, error) => {
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        medicines:
+          persistedState &&
+          typeof persistedState === "object" &&
+          "medicines" in persistedState &&
+          Array.isArray((persistedState as { medicines?: unknown }).medicines)
+            ? (persistedState as PersistedMedicineState).medicines
+            : currentState.medicines,
+      }),
+      onRehydrateStorage: () => (_state, error) => {
         if (error) {
           console.error("Failed to rehydrate medicine store", error);
         }
-        state?.setHydrated(true);
       },
     },
   ),
 );
 
-let hydrationPromise: Promise<void> | null = null;
+export function useMedicineStoreHydrated() {
+  const [hydrated, setHydrated] = useState(() => useMedicineStore.persist.hasHydrated());
 
-export function ensureMedicineStoreHydrated() {
-  if (typeof window === "undefined") return Promise.resolve();
+  useEffect(() => {
+    setHydrated(useMedicineStore.persist.hasHydrated());
 
-  if (useMedicineStore.persist.hasHydrated()) {
-    if (!useMedicineStore.getState().hydrated) {
-      useMedicineStore.getState().setHydrated(true);
-    }
-    return Promise.resolve();
-  }
+    const unsubHydrate = useMedicineStore.persist.onHydrate(() => setHydrated(false));
+    const unsubFinishHydration = useMedicineStore.persist.onFinishHydration(() => setHydrated(true));
 
-  if (!hydrationPromise) {
-    hydrationPromise = Promise.resolve()
-      .then(() => useMedicineStore.persist.rehydrate())
-      .catch((error: unknown) => {
-        console.error("Failed to rehydrate medicine store", error);
-      })
-      .finally(() => {
-        useMedicineStore.getState().setHydrated(true);
-      });
-  }
+    return () => {
+      unsubHydrate();
+      unsubFinishHydration();
+    };
+  }, []);
 
-  return hydrationPromise;
+  return hydrated;
 }
 
-if (typeof window !== "undefined") {
-  void ensureMedicineStoreHydrated();
+export function hasMedicineBackupSnapshot() {
+  if (typeof window === "undefined") return false;
+  return extractPersistedMedicines(window.localStorage.getItem(BACKUP_STORAGE_KEY)).length > 0;
+}
+
+export function restoreMedicineBackupSnapshot() {
+  if (typeof window === "undefined") return false;
+
+  const backupValue = window.localStorage.getItem(BACKUP_STORAGE_KEY);
+  const medicines = extractPersistedMedicines(backupValue);
+
+  if (medicines.length === 0 || !backupValue) {
+    return false;
+  }
+
+  window.localStorage.setItem(STORAGE_KEY, backupValue);
+  useMedicineStore.setState({ medicines });
+  return true;
 }
 
 export function expiryDate(m: Pick<Medicine, "expiryMonth" | "expiryYear">): Date {
