@@ -7,12 +7,18 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { useMedicineStore } from "@/lib/medicine-store";
+import {
+  hasMedicineBackupSnapshot,
+  restoreMedicineBackupSnapshot,
+  useMedicineStore,
+  useMedicineStoreHydrated,
+} from "@/lib/medicine-store";
 import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 function NotFoundComponent() {
   return (
@@ -120,7 +126,19 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const hydrated = useMedicineStore((s) => s.hydrated);
+  const hydrated = useMedicineStoreHydrated();
+  const medicines = useMedicineStore((s) => s.medicines);
+  const recoveryAttemptedRef = useRef(false);
+
+  useEffect(() => {
+    if (!hydrated || recoveryAttemptedRef.current || medicines.length > 0) return;
+
+    recoveryAttemptedRef.current = true;
+
+    if (hasMedicineBackupSnapshot() && restoreMedicineBackupSnapshot()) {
+      toast.success("Recovered your saved medicines from local backup");
+    }
+  }, [hydrated, medicines.length]);
 
   return (
     <QueryClientProvider client={queryClient}>
