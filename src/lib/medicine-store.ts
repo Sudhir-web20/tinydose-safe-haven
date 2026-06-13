@@ -79,10 +79,15 @@ const browserMedicineStorage: StateStorage = {
   },
 };
 
-const medicineStorage =
-  typeof window !== "undefined"
-    ? createJSONStorage<PersistedMedicineState>(() => browserMedicineStorage)
-    : undefined;
+const noopMedicineStorage: StateStorage = {
+  getItem: () => null,
+  setItem: () => undefined,
+  removeItem: () => undefined,
+};
+
+const medicineStorage = createJSONStorage<PersistedMedicineState>(() =>
+  typeof window !== "undefined" ? browserMedicineStorage : noopMedicineStorage,
+);
 
 export const useMedicineStore = create<MedicineStore>()(
   persist(
@@ -152,13 +157,29 @@ export const useMedicineStore = create<MedicineStore>()(
 );
 
 export function useMedicineStoreHydrated() {
-  const [hydrated, setHydrated] = useState(() => useMedicineStore.persist.hasHydrated());
+  const [hydrated, setHydated] = useState(() => {
+    if (typeof window === "undefined") return false;
+
+    const persistApi = useMedicineStore.persist;
+    return persistApi?.hasHydrated() ?? true;
+  });
 
   useEffect(() => {
-    setHydrated(useMedicineStore.persist.hasHydrated());
+    const persistApi = useMedicineStore.persist;
 
-    const unsubHydrate = useMedicineStore.persist.onHydrate(() => setHydrated(false));
-    const unsubFinishHydration = useMedicineStore.persist.onFinishHydration(() => setHydrated(true));
+    if (!persistApi) {
+      setHydated(true);
+      return;
+    }
+
+    setHydated(persistApi.hasHydrated());
+
+    const unsubHydrate = persistApi.onHydrate(() => setHydated(false));
+    const unsubFinishHydration = persistApi.onFinishHydration(() => setHydated(true));
+
+    if (!persistApi.hasHydrated()) {
+      void persistApi.rehydrate();
+    }
 
     return () => {
       unsubHydrate();
