@@ -2,6 +2,8 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { LayoutDashboard, Plus, CalendarDays, Pill } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { InstallButton } from "@/components/InstallButton";
 import type { ReactNode } from "react";
 
 const NAV = [
@@ -35,32 +37,36 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="text-[11px] text-muted-foreground -mt-0.5">Calm medicine tracking</div>
             </div>
           </Link>
-          <nav className="hidden md:flex items-center gap-1">
-            {NAV.map((n) => {
-              const Icon = n.icon;
-              const active = pathname === n.to;
-              return (
-                <Link
-                  key={n.to}
-                  to={n.to}
-                  className={cn(
-                    "relative px-3.5 py-2 rounded-full text-sm transition-colors flex items-center gap-2",
-                    active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {active && (
-                    <motion.span
-                      layoutId="nav-pill"
-                      className="absolute inset-0 rounded-full bg-secondary"
-                      transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                    />
-                  )}
-                  <Icon className="relative h-4 w-4" />
-                  <span className="relative">{n.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
+          <div className="flex items-center gap-2">
+            <nav className="hidden md:flex items-center gap-1">
+              {NAV.map((n) => {
+                const Icon = n.icon;
+                const active = pathname === n.to;
+                return (
+                  <Link
+                    key={n.to}
+                    to={n.to}
+                    className={cn(
+                      "relative px-3.5 py-2 rounded-full text-sm transition-colors flex items-center gap-2",
+                      active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="nav-pill"
+                        className="absolute inset-0 rounded-full bg-secondary"
+                        transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                      />
+                    )}
+                    <Icon className="relative h-4 w-4" />
+                    <span className="relative">{n.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+            <InstallButton />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 

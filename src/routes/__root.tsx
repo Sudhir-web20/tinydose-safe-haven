@@ -19,6 +19,7 @@ import {
 } from "@/lib/medicine-store";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
+import { ThemeProvider, themeInitScript } from "@/lib/theme";
 
 function NotFoundComponent() {
   return (
@@ -84,10 +85,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "TinyDose Vault — Calm baby medicine expiry tracking" },
       { name: "description", content: "Track your baby's medicines, expiry dates, and reminders in a calm, premium vault." },
       { name: "author", content: "TinyDose Vault" },
+      { name: "theme-color", content: "#7EA896" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "TinyDose" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { property: "og:title", content: "TinyDose Vault" },
       { property: "og:description", content: "Track your baby's medicines, expiry dates, and reminders." },
       { property: "og:type", content: "website" },
@@ -96,12 +102,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "icon", href: "/icon-512.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/icon-512.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap",
       },
+    ],
+    scripts: [
+      { children: themeInitScript },
     ],
   }),
   shellComponent: RootShell,
@@ -112,11 +124,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {children}
         <Scripts />
       </body>
@@ -142,17 +154,19 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {hydrated ? (
-        <Outlet />
-      ) : (
-        <div className="flex min-h-screen items-center justify-center bg-background px-4">
-          <div className="text-center">
-            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-border border-t-primary" />
-            <p className="mt-4 text-sm text-muted-foreground">Restoring your saved medicines…</p>
+      <ThemeProvider>
+        {hydrated ? (
+          <Outlet />
+        ) : (
+          <div className="flex min-h-screen items-center justify-center bg-background px-4">
+            <div className="text-center">
+              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-border border-t-primary" />
+              <p className="mt-4 text-sm text-muted-foreground">Restoring your saved medicines…</p>
+            </div>
           </div>
-        </div>
-      )}
-      <Toaster position="top-center" />
+        )}
+        <Toaster position="top-center" />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
