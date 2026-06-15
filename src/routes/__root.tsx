@@ -19,6 +19,7 @@ import {
 } from "@/lib/medicine-store";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
+import { ThemeProvider, themeInitScript } from "@/lib/theme";
 
 function NotFoundComponent() {
   return (
