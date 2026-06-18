@@ -4,6 +4,7 @@ import { LayoutDashboard, Plus, CalendarDays, Pill } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { InstallButton } from "@/components/InstallButton";
+import logoAsset from "@/assets/tinydose-logo.png.asset.json";
 import type { ReactNode } from "react";
 
 const NAV = [
@@ -29,8 +30,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/60 border-b border-border/60">
         <div className="mx-auto max-w-5xl px-5 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <span className="relative inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 shadow-soft">
-              <svg viewBox="0 0 24 24" className="h-5 w-5 text-primary-foreground" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 4 7v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7l-8-5Z"/><path d="m9 12 2 2 4-4"/></svg>
+            <span className="relative inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl shadow-soft ring-1 ring-border/40">
+              <img src={logoAsset.url} alt="TinyDose Vault" className="h-full w-full object-cover" />
             </span>
             <div className="leading-tight">
               <div className="font-display text-[17px] font-medium tracking-tight">TinyDose Vault</div>
