@@ -30,7 +30,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/60 border-b border-border/60">
         <div className="mx-auto max-w-5xl px-5 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <span className="relative inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl shadow-soft ring-1 ring-border/40">
+            <span className="relative inline-flex h-14 w-14 md:h-16 md:w-16 items-center justify-center overflow-hidden rounded-2xl shadow-soft ring-1 ring-border/40">
               <img src={logoAsset.url} alt="TinyDose Vault" className="h-full w-full object-cover" />
             </span>
             <div className="leading-tight">
