@@ -43,11 +43,8 @@ function Dashboard() {
     <AppShell>
       {/* Hero */}
       <section className="mb-8 relative">
-        {/* Decorative illustration — behind on mobile, beside on desktop */}
-        <HeroIllustration
-          className="pointer-events-none select-none absolute md:static inset-0 mx-auto md:mx-0 h-full w-full max-w-sm md:max-w-none md:h-56 md:w-72 opacity-40 md:opacity-100 md:order-2 md:shrink-0"
-        />
-        {/* Readability veil over illustration on mobile */}
+        {/* Decorative illustration behind text on mobile */}
+        <HeroIllustration className="md:hidden pointer-events-none select-none absolute inset-0 mx-auto h-full w-full max-w-sm opacity-40" />
         <div className="md:hidden pointer-events-none absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background" />
 
         <motion.div
