@@ -6,6 +6,7 @@ import { Plus, ShieldCheck, Clock, AlertTriangle, Skull, Sparkles } from "lucide
 import { MedicineCard } from "@/components/MedicineCard";
 import { SafetyNote } from "@/components/SafetyNote";
 import { Button } from "@/components/ui/button";
+import { HeroIllustration } from "@/components/HeroIllustration";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -41,24 +42,31 @@ function Dashboard() {
   return (
     <AppShell>
       {/* Hero */}
-      <section className="mb-8">
+      <section className="mb-8 relative">
+        {/* Decorative illustration behind text on mobile */}
+        <HeroIllustration className="md:hidden pointer-events-none select-none absolute inset-0 mx-auto h-full w-full max-w-sm opacity-40" />
+        <div className="md:hidden pointer-events-none absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background" />
+
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col md:flex-row md:items-end md:justify-between gap-4"
+          className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4"
         >
-          <div>
+          <div className="relative">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-2">
               Your baby's vault
             </p>
             <h1 className="font-display text-3xl md:text-4xl font-medium leading-tight">
               A quiet, careful watch <br className="hidden md:block" />over every little bottle.
             </h1>
+            <Button asChild className="rounded-full h-11 px-5 shadow-soft mt-5 md:mt-6">
+              <Link to="/add"><Plus className="h-4 w-4" /> Add medicine</Link>
+            </Button>
           </div>
-          <Button asChild className="rounded-full h-11 px-5 shadow-soft">
-            <Link to="/add"><Plus className="h-4 w-4" /> Add medicine</Link>
-          </Button>
+          <div className="hidden md:block md:shrink-0" aria-hidden="true">
+            <HeroIllustration className="h-56 w-72" />
+          </div>
         </motion.div>
       </section>
 
