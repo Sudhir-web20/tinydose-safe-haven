@@ -121,6 +121,7 @@ export const useMedicineStore = create<MedicineStore>()(
     {
       name: STORAGE_KEY,
       storage: medicineStorage,
+      skipHydration: true,
       partialize: (state) => ({ medicines: state.medicines }),
       version: 1,
       migrate: (persistedState) => {
