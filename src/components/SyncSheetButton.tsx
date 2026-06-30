@@ -12,7 +12,6 @@ export function SyncSheetButton() {
   const sync = useServerFn(syncMedicinesToSheet);
   const [status, setStatus] = useState<"idle" | "syncing" | "ok">("idle");
   const lastSyncedRef = useRef<string>("");
-  const firstAutoRef = useRef(true);
 
   const snapshot = JSON.stringify(
     medicines.map((m) => ({
@@ -70,15 +69,10 @@ export function SyncSheetButton() {
     }
   }
 
-  // Auto-sync on changes (debounced)
+  // Auto-sync on hydration and on changes (debounced)
   useEffect(() => {
     if (!hydrated) return;
     if (snapshot === lastSyncedRef.current) return;
-    if (firstAutoRef.current) {
-      firstAutoRef.current = false;
-      lastSyncedRef.current = snapshot;
-      return;
-    }
     const t = setTimeout(() => {
       void run(false);
     }, 1200);
