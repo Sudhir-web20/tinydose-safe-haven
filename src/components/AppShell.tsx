@@ -4,6 +4,7 @@ import { LayoutDashboard, Plus, CalendarDays, Pill } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { InstallButton } from "@/components/InstallButton";
+import { SyncSheetButton } from "@/components/SyncSheetButton";
 import logoAsset from "@/assets/tinydose-logo.png.asset.json";
 import type { ReactNode } from "react";
 
@@ -65,6 +66,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 );
               })}
             </nav>
+            <SyncSheetButton />
             <InstallButton />
             <ThemeToggle />
           </div>
