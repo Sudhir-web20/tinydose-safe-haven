@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { useMedicineStore, statusOf, expiryDate, daysUntil } from "@/lib/medicine-store";
 import { motion } from "framer-motion";
-import { Plus, ShieldCheck, Clock, AlertTriangle, Skull, Sparkles } from "lucide-react";
+import { Plus, ShieldCheck, Clock, Skull, Sparkles } from "lucide-react";
 import { MedicineCard } from "@/components/MedicineCard";
 import { SafetyNote } from "@/components/SafetyNote";
 import { Button } from "@/components/ui/button";
