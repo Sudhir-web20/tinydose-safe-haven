@@ -146,18 +146,54 @@ function RootComponent() {
   const recoveryAttemptedRef = useRef(false);
 
   useEffect(() => {
-    if (!hydrated || recoveryAttemptedRef.current || medicines.length > 0) return;
-
+    if (!hydrated || recoveryAttemptedRef.current) return;
     recoveryAttemptedRef.current = true;
 
-    if (refreshMedicineStoreFromStorage()) {
-      return;
+    // Refresh from storage in case store is stale
+    refreshMedicineStoreFromStorage();
+    const currentCount = useMedicineStore.getState().medicines.length;
+
+    // Read backup snapshot count for verification
+    let backupCount = 0;
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem("tinydose-vault-v1:last-good");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed?.state?.medicines)) {
+            backupCount = parsed.state.medicines.length;
+          }
+        }
+      } catch {
+        /* ignore */
+      }
     }
 
-    if (hasMedicineBackupSnapshot() && restoreMedicineBackupSnapshot()) {
-      toast.success("Recovered your saved medicines from local backup");
+    const recoverAction = (target: number) => ({
+      label: "Recover",
+      onClick: () => {
+        if (restoreMedicineBackupSnapshot()) {
+          toast.success(`Recovered ${target} medicines`);
+        } else {
+          toast.error("Recovery failed");
+        }
+      },
+    });
+
+    if (currentCount === 0 && backupCount > 0) {
+      toast.warning(`Found 0 — tap to recover ${backupCount}`, {
+        duration: 10000,
+        action: recoverAction(backupCount),
+      });
+    } else if (backupCount > currentCount && currentCount > 0) {
+      toast.warning(`Found ${currentCount} — tap to recover ${backupCount}`, {
+        duration: 10000,
+        action: recoverAction(backupCount),
+      });
+    } else if (currentCount > 0) {
+      toast.success(`Restored ${currentCount} medicine${currentCount === 1 ? "" : "s"}`);
     }
-  }, [hydrated, medicines.length]);
+  }, [hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
