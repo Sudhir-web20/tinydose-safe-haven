@@ -69,10 +69,10 @@ const browserMedicineStorage: StateStorage = {
   getItem: (name) => window.localStorage.getItem(name),
   setItem: (name, value) => {
     window.localStorage.setItem(name, value);
-
-    if (extractPersistedMedicines(value).length > 0) {
-      window.localStorage.setItem(MEDICINE_BACKUP_STORAGE_KEY, value);
-    }
+    // Always mirror the latest persisted state into the backup snapshot so
+    // startup verification has an up-to-date last-good state after every
+    // add / edit / delete.
+    window.localStorage.setItem(MEDICINE_BACKUP_STORAGE_KEY, value);
   },
   removeItem: (name) => {
     window.localStorage.removeItem(name);
