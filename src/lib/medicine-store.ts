@@ -3,8 +3,8 @@ import { create } from "zustand";
 import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
 import type { MedicineType } from "./medicines-db";
 
-const STORAGE_KEY = "tinydose-vault-v1";
-const BACKUP_STORAGE_KEY = `${STORAGE_KEY}:last-good`;
+export const MEDICINE_STORAGE_KEY = "tinydose-vault-v1";
+export const MEDICINE_BACKUP_STORAGE_KEY = `${MEDICINE_STORAGE_KEY}:last-good`;
 
 export type MedicineStatus = "safe" | "soon" | "critical" | "expired" | "finished";
 
@@ -71,7 +71,7 @@ const browserMedicineStorage: StateStorage = {
     window.localStorage.setItem(name, value);
 
     if (extractPersistedMedicines(value).length > 0) {
-      window.localStorage.setItem(BACKUP_STORAGE_KEY, value);
+      window.localStorage.setItem(MEDICINE_BACKUP_STORAGE_KEY, value);
     }
   },
   removeItem: (name) => {
@@ -119,7 +119,7 @@ export const useMedicineStore = create<MedicineStore>()(
         })),
     }),
     {
-      name: STORAGE_KEY,
+      name: MEDICINE_STORAGE_KEY,
       storage: medicineStorage,
       skipHydration: true,
       partialize: (state) => ({ medicines: state.medicines }),
@@ -193,20 +193,36 @@ export function useMedicineStoreHydrated() {
 
 export function hasMedicineBackupSnapshot() {
   if (typeof window === "undefined") return false;
-  return extractPersistedMedicines(window.localStorage.getItem(BACKUP_STORAGE_KEY)).length > 0;
+  return extractPersistedMedicines(window.localStorage.getItem(MEDICINE_BACKUP_STORAGE_KEY)).length > 0;
+}
+
+export function readMedicineStorageSnapshot() {
+  if (typeof window === "undefined") return [];
+  return extractPersistedMedicines(window.localStorage.getItem(MEDICINE_STORAGE_KEY));
+}
+
+export function refreshMedicineStoreFromStorage() {
+  const medicines = readMedicineStorageSnapshot();
+
+  if (medicines.length === 0) {
+    return false;
+  }
+
+  useMedicineStore.setState({ medicines });
+  return true;
 }
 
 export function restoreMedicineBackupSnapshot() {
   if (typeof window === "undefined") return false;
 
-  const backupValue = window.localStorage.getItem(BACKUP_STORAGE_KEY);
+  const backupValue = window.localStorage.getItem(MEDICINE_BACKUP_STORAGE_KEY);
   const medicines = extractPersistedMedicines(backupValue);
 
   if (medicines.length === 0 || !backupValue) {
     return false;
   }
 
-  window.localStorage.setItem(STORAGE_KEY, backupValue);
+  window.localStorage.setItem(MEDICINE_STORAGE_KEY, backupValue);
   useMedicineStore.setState({ medicines });
   return true;
 }
