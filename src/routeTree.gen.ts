@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MedicinesRouteImport } from './routes/medicines'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AddRouteImport } from './routes/add'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EditIdRouteImport } from './routes/edit.$id'
@@ -24,6 +25,11 @@ const MedicinesRoute = MedicinesRouteImport.update({
 const CalendarRoute = CalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AddRoute = AddRouteImport.update({
@@ -50,6 +56,7 @@ const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/add': typeof AddRoute
+  '/audit': typeof AuditRoute
   '/calendar': typeof CalendarRoute
   '/medicines': typeof MedicinesRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/add': typeof AddRoute
+  '/audit': typeof AuditRoute
   '/calendar': typeof CalendarRoute
   '/medicines': typeof MedicinesRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/add': typeof AddRoute
+  '/audit': typeof AuditRoute
   '/calendar': typeof CalendarRoute
   '/medicines': typeof MedicinesRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
@@ -77,6 +86,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/add'
+    | '/audit'
     | '/calendar'
     | '/medicines'
     | '/api/generate-image'
@@ -85,6 +95,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/add'
+    | '/audit'
     | '/calendar'
     | '/medicines'
     | '/api/generate-image'
@@ -93,6 +104,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/add'
+    | '/audit'
     | '/calendar'
     | '/medicines'
     | '/api/generate-image'
@@ -102,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AddRoute: typeof AddRoute
+  AuditRoute: typeof AuditRoute
   CalendarRoute: typeof CalendarRoute
   MedicinesRoute: typeof MedicinesRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
@@ -122,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof CalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/add': {
@@ -158,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AddRoute: AddRoute,
+  AuditRoute: AuditRoute,
   CalendarRoute: CalendarRoute,
   MedicinesRoute: MedicinesRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
