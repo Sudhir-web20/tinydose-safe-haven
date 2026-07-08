@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import {
   hasMedicineBackupSnapshot,
+  refreshMedicineStoreFromStorage,
   restoreMedicineBackupSnapshot,
   useMedicineStore,
   useMedicineStoreHydrated,
@@ -149,10 +150,32 @@ function RootComponent() {
 
     recoveryAttemptedRef.current = true;
 
+    if (refreshMedicineStoreFromStorage()) {
+      return;
+    }
+
     if (hasMedicineBackupSnapshot() && restoreMedicineBackupSnapshot()) {
       toast.success("Recovered your saved medicines from local backup");
     }
   }, [hydrated, medicines.length]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
+    const refreshFromSavedData = () => {
+      refreshMedicineStoreFromStorage();
+    };
+
+    window.addEventListener("focus", refreshFromSavedData);
+    window.addEventListener("storage", refreshFromSavedData);
+    document.addEventListener("visibilitychange", refreshFromSavedData);
+
+    return () => {
+      window.removeEventListener("focus", refreshFromSavedData);
+      window.removeEventListener("storage", refreshFromSavedData);
+      document.removeEventListener("visibilitychange", refreshFromSavedData);
+    };
+  }, [hydrated]);
 
   return (
     <QueryClientProvider client={queryClient}>
