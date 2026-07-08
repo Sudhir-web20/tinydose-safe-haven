@@ -19,18 +19,17 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
-  const medicines = useMedicineStore((s) => s.medicines).filter((m) => !m.finished);
+  const allMedicines = useMedicineStore((s) => s.medicines);
+  const activeMedicines = allMedicines.filter((m) => !m.finished);
 
-  const total = medicines.length;
-  const safe = medicines.filter((m) => statusOf(m) === "safe").length;
-  const soon = medicines.filter((m) => statusOf(m) === "soon" || statusOf(m) === "critical").length;
-  const expired = medicines.filter((m) => statusOf(m) === "expired").length;
+  const total = allMedicines.length;
+  const safe = activeMedicines.filter((m) => statusOf(m) === "safe").length;
+  const soon = activeMedicines.filter((m) => statusOf(m) === "soon" || statusOf(m) === "critical").length;
+  const expired = activeMedicines.filter((m) => statusOf(m) === "expired").length;
 
-  const sorted = [...medicines].sort(
+  const sorted = [...allMedicines].sort(
     (a, b) => expiryDate(a).getTime() - expiryDate(b).getTime(),
   );
-  const upcoming = sorted.filter((m) => daysUntil(expiryDate(m)) >= 0).slice(0, 4);
-  const expiredList = sorted.filter((m) => daysUntil(expiryDate(m)) < 0).slice(0, 3);
 
   const stats = [
     { label: "Total", value: total, icon: Sparkles, tint: "text-foreground", bg: "bg-secondary" },
@@ -94,38 +93,24 @@ function Dashboard() {
 
       <SafetyNote />
 
-      {/* Reminders / Upcoming */}
+      {/* Full medicine list */}
       <section className="mt-8">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-xl">Coming up</h2>
-          <Link to="/medicines" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-            View all →
-          </Link>
+          <h2 className="font-display text-xl">All saved medicines</h2>
+          <span className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground">
+            {sorted.length} total
+          </span>
         </div>
-        {upcoming.length === 0 ? (
+        {sorted.length === 0 ? (
           <EmptyState />
         ) : (
           <div className="grid md:grid-cols-2 gap-3">
-            {upcoming.map((m, i) => (
+            {sorted.map((m, i) => (
               <MedicineCard key={m.id} m={m} index={i} />
             ))}
           </div>
         )}
       </section>
-
-      {expiredList.length > 0 && (
-        <section className="mt-10">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="h-4 w-4 text-danger" />
-            <h2 className="font-display text-xl">Past expiry — safely discard</h2>
-          </div>
-          <div className="grid md:grid-cols-2 gap-3">
-            {expiredList.map((m, i) => (
-              <MedicineCard key={m.id} m={m} index={i} />
-            ))}
-          </div>
-        </section>
-      )}
     </AppShell>
   );
 }
