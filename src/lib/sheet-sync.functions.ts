@@ -113,3 +113,39 @@ export const syncMedicinesToSheet = createServerFn({ method: "POST" })
       spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit`,
     };
   });
+
+export const fetchSheetMedicines = createServerFn({ method: "GET" }).handler(async () => {
+  const lovableKey = process.env.LOVABLE_API_KEY;
+  const sheetsKey = process.env.GOOGLE_SHEETS_API_KEY;
+  if (!lovableKey) throw new Error("LOVABLE_API_KEY is not configured");
+  if (!sheetsKey) throw new Error("GOOGLE_SHEETS_API_KEY is not configured");
+  const res = await fetch(
+    `${GATEWAY}/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:K10000`,
+    {
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": sheetsKey,
+      },
+    },
+  );
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Sheets read failed ${res.status}: ${body}`);
+  }
+  const json = (await res.json()) as { values?: string[][] };
+  const values = json.values ?? [];
+  const [, ...rows] = values;
+  const items = rows
+    .filter((r) => (r[0] ?? "").trim() !== "")
+    .map((r) => ({
+      id: r[0] ?? "",
+      name: r[1] ?? "",
+      expiry: r[4] ?? "",
+      finished: (r[9] ?? "").toLowerCase() === "yes",
+    }));
+  return {
+    count: items.length,
+    items,
+    spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit`,
+  };
+});
