@@ -2,12 +2,11 @@ import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { RefreshCw, Check } from "lucide-react";
 import { toast } from "sonner";
-import { useMedicineStore, useMedicineStoreHydrated } from "@/lib/medicine-store";
+import { useMedicineStore } from "@/lib/medicine-store";
 import { syncMedicinesToSheet } from "@/lib/sheet-sync.functions";
 import { cn } from "@/lib/utils";
 
 export function SyncSheetButton() {
-  const hydrated = useMedicineStoreHydrated();
   const medicines = useMedicineStore((s) => s.medicines);
   const sync = useServerFn(syncMedicinesToSheet);
   const [status, setStatus] = useState<"idle" | "syncing" | "ok">("idle");
