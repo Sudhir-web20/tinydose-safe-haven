@@ -12,6 +12,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import {
+  readMedicineBackupSnapshot,
   refreshMedicineStoreFromStorage,
   restoreMedicineBackupSnapshot,
   useMedicineStore,
@@ -151,21 +152,7 @@ function RootComponent() {
     refreshMedicineStoreFromStorage();
     const currentCount = useMedicineStore.getState().medicines.length;
 
-    // Read backup snapshot count for verification
-    let backupCount = 0;
-    if (typeof window !== "undefined") {
-      try {
-        const raw = window.localStorage.getItem("tinydose-vault-v1:last-good");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed?.state?.medicines)) {
-            backupCount = parsed.state.medicines.length;
-          }
-        }
-      } catch {
-        /* ignore */
-      }
-    }
+    const backupCount = readMedicineBackupSnapshot().length;
 
     const recoverAction = (target: number) => ({
       label: "Recover",

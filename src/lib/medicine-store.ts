@@ -201,11 +201,15 @@ export function useMedicineStoreHydrated() {
     }, 1200);
 
     if (!persistApi.hasHydrated()) {
-      void persistApi.rehydrate().finally(() => {
+      Promise.resolve(persistApi.rehydrate()).finally(() => {
         window.clearTimeout(fallback);
         refreshMedicineStoreFromStorage();
         setHydated(true);
       });
+    } else {
+      window.clearTimeout(fallback);
+      refreshMedicineStoreFromStorage();
+      setHydated(true);
     }
 
     return () => {
