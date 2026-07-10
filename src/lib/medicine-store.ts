@@ -66,7 +66,24 @@ function extractPersistedMedicines(value: string | null | undefined): Medicine[]
 }
 
 const browserMedicineStorage: StateStorage = {
-  getItem: (name) => window.localStorage.getItem(name),
+  getItem: (name) => {
+    const value = window.localStorage.getItem(name);
+
+    if (name !== MEDICINE_STORAGE_KEY) {
+      return value;
+    }
+
+    const medicines = extractPersistedMedicines(value);
+    const backupValue = window.localStorage.getItem(MEDICINE_BACKUP_STORAGE_KEY);
+    const backupMedicines = extractPersistedMedicines(backupValue);
+
+    if (backupValue && backupMedicines.length > medicines.length) {
+      window.localStorage.setItem(MEDICINE_STORAGE_KEY, backupValue);
+      return backupValue;
+    }
+
+    return value;
+  },
   setItem: (name, value) => {
     window.localStorage.setItem(name, value);
     // Always mirror the latest persisted state into the backup snapshot so
@@ -178,11 +195,21 @@ export function useMedicineStoreHydrated() {
     const unsubHydrate = persistApi.onHydrate(() => setHydated(false));
     const unsubFinishHydration = persistApi.onFinishHydration(() => setHydated(true));
 
+    const fallback = window.setTimeout(() => {
+      refreshMedicineStoreFromStorage();
+      setHydated(true);
+    }, 1200);
+
     if (!persistApi.hasHydrated()) {
-      void persistApi.rehydrate();
+      void persistApi.rehydrate().finally(() => {
+        window.clearTimeout(fallback);
+        refreshMedicineStoreFromStorage();
+        setHydated(true);
+      });
     }
 
     return () => {
+      window.clearTimeout(fallback);
       unsubHydrate();
       unsubFinishHydration();
     };
@@ -201,11 +228,27 @@ export function readMedicineStorageSnapshot() {
   return extractPersistedMedicines(window.localStorage.getItem(MEDICINE_STORAGE_KEY));
 }
 
+export function readMedicineBackupSnapshot() {
+  if (typeof window === "undefined") return [];
+  return extractPersistedMedicines(window.localStorage.getItem(MEDICINE_BACKUP_STORAGE_KEY));
+}
+
 export function refreshMedicineStoreFromStorage() {
-  const medicines = readMedicineStorageSnapshot();
+  if (typeof window === "undefined") return false;
+
+  const primaryValue = window.localStorage.getItem(MEDICINE_STORAGE_KEY);
+  const backupValue = window.localStorage.getItem(MEDICINE_BACKUP_STORAGE_KEY);
+  const primaryMedicines = extractPersistedMedicines(primaryValue);
+  const backupMedicines = extractPersistedMedicines(backupValue);
+  const shouldUseBackup = !!backupValue && backupMedicines.length > primaryMedicines.length;
+  const medicines = shouldUseBackup ? backupMedicines : primaryMedicines;
 
   if (medicines.length === 0) {
     return false;
+  }
+
+  if (shouldUseBackup) {
+    window.localStorage.setItem(MEDICINE_STORAGE_KEY, backupValue);
   }
 
   useMedicineStore.setState({ medicines });
@@ -222,7 +265,7 @@ export function restoreMedicineBackupSnapshot() {
     return false;
   }
 
-  window.localStorage.setItem(MEDICINE_STORAGE_KEY, backupValue);
+  browserMedicineStorage.setItem(MEDICINE_STORAGE_KEY, backupValue);
   useMedicineStore.setState({ medicines });
   return true;
 }
