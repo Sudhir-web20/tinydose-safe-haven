@@ -1,13 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { RefreshCw, Check } from "lucide-react";
 import { toast } from "sonner";
-import { useMedicineStore, useMedicineStoreHydrated } from "@/lib/medicine-store";
+import { useMedicineStore } from "@/lib/medicine-store";
 import { syncMedicinesToSheet } from "@/lib/sheet-sync.functions";
 import { cn } from "@/lib/utils";
 
 export function SyncSheetButton() {
-  const hydrated = useMedicineStoreHydrated();
   const medicines = useMedicineStore((s) => s.medicines);
   const sync = useServerFn(syncMedicinesToSheet);
   const [status, setStatus] = useState<"idle" | "syncing" | "ok">("idle");
@@ -68,17 +67,6 @@ export function SyncSheetButton() {
       toast.error("Sync failed", { description: (err as Error).message });
     }
   }
-
-  // Auto-sync on hydration and on changes (debounced)
-  useEffect(() => {
-    if (!hydrated) return;
-    if (snapshot === lastSyncedRef.current) return;
-    const t = setTimeout(() => {
-      void run(false);
-    }, 1200);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snapshot, hydrated]);
 
   return (
     <button
