@@ -15,6 +15,7 @@ import {
   readMedicineBackupSnapshot,
   refreshMedicineStoreFromStorage,
   restoreMedicineBackupSnapshot,
+  subscribeToMedicineStorageRefresh,
   useMedicineStore,
   useMedicineStoreHydrated,
 } from "@/lib/medicine-store";
@@ -187,13 +188,14 @@ function RootComponent() {
       refreshMedicineStoreFromStorage();
     };
 
+    const unsubscribeStorageRefresh = subscribeToMedicineStorageRefresh(refreshFromSavedData);
+
     window.addEventListener("focus", refreshFromSavedData);
-    window.addEventListener("storage", refreshFromSavedData);
     document.addEventListener("visibilitychange", refreshFromSavedData);
 
     return () => {
+      unsubscribeStorageRefresh();
       window.removeEventListener("focus", refreshFromSavedData);
-      window.removeEventListener("storage", refreshFromSavedData);
       document.removeEventListener("visibilitychange", refreshFromSavedData);
     };
   }, [hydrated]);

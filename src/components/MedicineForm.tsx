@@ -18,10 +18,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Sparkles, Loader2 } from "lucide-react";
+import { CalendarIcon, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 const TYPES: MedicineType[] = ["Syrup", "Drops", "Tablet", "Cream", "Ointment", "Inhaler", "Other"];
 
@@ -48,55 +47,13 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
     initial?.reminders ?? { d60: true, d30: true, d7: true, d0: true },
   );
   const [error, setError] = useState<string | null>(null);
-  const [aiImage, setAiImage] = useState<string | null>(initial?.imageUrl ?? null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiFinal, setAiFinal] = useState(!!initial?.imageUrl);
+  const savedImage = initial?.imageUrl;
 
   const svgIllustration = useMemo(
     () => (name.trim() ? medicineIllustration(name, type) : null),
     [name, type],
   );
-  const illustration = aiImage ?? svgIllustration;
-
-  const fetchImage = async (medName: string, medType: MedicineType, signal: AbortSignal) => {
-    setAiLoading(true);
-    setAiFinal(false);
-    try {
-      const res = await fetch("/api/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: `${medName} ${medType} baby medicine` }),
-        signal,
-      });
-      if (!res.ok) throw new Error(`Search failed (${res.status})`);
-      const data = (await res.json()) as { image?: string; thumbnail?: string };
-      const url = data.image ?? data.thumbnail;
-      if (!url) throw new Error("No image found");
-      setAiImage(url);
-      setAiFinal(true);
-    } catch (e) {
-      if ((e as Error).name === "AbortError") return;
-      toast.error(e instanceof Error ? e.message : "Failed to fetch image");
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  // Auto-fetch a real product photo when the user types a name.
-  useEffect(() => {
-    const trimmed = name.trim();
-    if (trimmed.length < 3) return;
-    if (initial?.imageUrl && trimmed === initial.name && type === initial.type) return;
-    const controller = new AbortController();
-    const handle = setTimeout(() => {
-      fetchImage(trimmed, type, controller.signal);
-    }, 600);
-    return () => {
-      clearTimeout(handle);
-      controller.abort();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, type]);
+  const illustration = savedImage ?? svgIllustration;
 
   useEffect(() => setError(null), [name, month, year]);
 
