@@ -78,7 +78,7 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
       doctor: doctor.trim() || undefined,
       notes: notes.trim() || undefined,
       reminders,
-      imageUrl: aiImage && aiFinal ? aiImage : undefined,
+      imageUrl: savedImage,
     });
   };
 
@@ -102,23 +102,15 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
               <img
                 src={illustration}
                 alt={name}
-                className={cn(
-                  "h-full w-full object-cover transition-[filter] duration-500",
-                  aiImage && !aiFinal && "blur-md",
-                )}
+                className="h-full w-full object-cover"
               />
             </div>
             <div className="min-w-0 flex-1">
               <div className="font-display text-base truncate">{name}</div>
               {generic && <div className="text-xs text-muted-foreground truncate">{generic}</div>}
               <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1.5">
-                {aiLoading && <Loader2 className="h-3 w-3 animate-spin" />}
-                {!aiImage && !aiLoading && <Sparkles className="h-3 w-3" />}
-                {aiLoading
-                  ? "Finding product photo…"
-                  : aiImage
-                    ? "Product photo from web."
-                    : "Illustrative preview."}
+                <Sparkles className="h-3 w-3" />
+                {savedImage ? "Saved product photo." : "Illustrative preview."}
               </div>
             </div>
           </motion.div>
