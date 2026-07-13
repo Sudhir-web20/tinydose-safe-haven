@@ -18,10 +18,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Sparkles, Loader2 } from "lucide-react";
+import { CalendarIcon, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 const TYPES: MedicineType[] = ["Syrup", "Drops", "Tablet", "Cream", "Ointment", "Inhaler", "Other"];
 
@@ -48,55 +47,13 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
     initial?.reminders ?? { d60: true, d30: true, d7: true, d0: true },
   );
   const [error, setError] = useState<string | null>(null);
-  const [aiImage, setAiImage] = useState<string | null>(initial?.imageUrl ?? null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiFinal, setAiFinal] = useState(!!initial?.imageUrl);
+  const savedImage = initial?.imageUrl;
 
   const svgIllustration = useMemo(
     () => (name.trim() ? medicineIllustration(name, type) : null),
     [name, type],
   );
-  const illustration = aiImage ?? svgIllustration;
-
-  const fetchImage = async (medName: string, medType: MedicineType, signal: AbortSignal) => {
-    setAiLoading(true);
-    setAiFinal(false);
-    try {
-      const res = await fetch("/api/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: `${medName} ${medType} baby medicine` }),
-        signal,
-      });
-      if (!res.ok) throw new Error(`Search failed (${res.status})`);
-      const data = (await res.json()) as { image?: string; thumbnail?: string };
-      const url = data.image ?? data.thumbnail;
-      if (!url) throw new Error("No image found");
-      setAiImage(url);
-      setAiFinal(true);
-    } catch (e) {
-      if ((e as Error).name === "AbortError") return;
-      toast.error(e instanceof Error ? e.message : "Failed to fetch image");
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  // Auto-fetch a real product photo when the user types a name.
-  useEffect(() => {
-    const trimmed = name.trim();
-    if (trimmed.length < 3) return;
-    if (initial?.imageUrl && trimmed === initial.name && type === initial.type) return;
-    const controller = new AbortController();
-    const handle = setTimeout(() => {
-      fetchImage(trimmed, type, controller.signal);
-    }, 600);
-    return () => {
-      clearTimeout(handle);
-      controller.abort();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, type]);
+  const illustration = savedImage ?? svgIllustration;
 
   useEffect(() => setError(null), [name, month, year]);
 
@@ -121,7 +78,7 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
       doctor: doctor.trim() || undefined,
       notes: notes.trim() || undefined,
       reminders,
-      imageUrl: aiImage && aiFinal ? aiImage : undefined,
+      imageUrl: savedImage,
     });
   };
 
@@ -145,23 +102,15 @@ export function MedicineForm({ initial, submitLabel = "Add to vault", onSubmit }
               <img
                 src={illustration}
                 alt={name}
-                className={cn(
-                  "h-full w-full object-cover transition-[filter] duration-500",
-                  aiImage && !aiFinal && "blur-md",
-                )}
+                className="h-full w-full object-cover"
               />
             </div>
             <div className="min-w-0 flex-1">
               <div className="font-display text-base truncate">{name}</div>
               {generic && <div className="text-xs text-muted-foreground truncate">{generic}</div>}
               <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1.5">
-                {aiLoading && <Loader2 className="h-3 w-3 animate-spin" />}
-                {!aiImage && !aiLoading && <Sparkles className="h-3 w-3" />}
-                {aiLoading
-                  ? "Finding product photo…"
-                  : aiImage
-                    ? "Product photo from web."
-                    : "Illustrative preview."}
+                <Sparkles className="h-3 w-3" />
+                {savedImage ? "Saved product photo." : "Illustrative preview."}
               </div>
             </div>
           </motion.div>

@@ -5,6 +5,7 @@ import type { MedicineType } from "./medicines-db";
 
 export const MEDICINE_STORAGE_KEY = "tinydose-vault-v1";
 export const MEDICINE_BACKUP_STORAGE_KEY = `${MEDICINE_STORAGE_KEY}:last-good`;
+export const MEDICINE_STORAGE_REFRESH_EVENT = `${MEDICINE_STORAGE_KEY}:changed`;
 
 export type MedicineStatus = "safe" | "soon" | "critical" | "expired" | "finished";
 
@@ -65,6 +66,22 @@ function extractPersistedMedicines(value: string | null | undefined): Medicine[]
   return [];
 }
 
+function notifyMedicineStorageChanged() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(MEDICINE_STORAGE_REFRESH_EVENT));
+}
+
+function pickBestPersistedSnapshot(primaryValue: string | null, backupValue: string | null) {
+  const primaryMedicines = extractPersistedMedicines(primaryValue);
+  const backupMedicines = extractPersistedMedicines(backupValue);
+
+  if (backupValue && backupMedicines.length > primaryMedicines.length) {
+    return { value: backupValue, medicines: backupMedicines, usedBackup: true };
+  }
+
+  return { value: primaryValue, medicines: primaryMedicines, usedBackup: false };
+}
+
 const browserMedicineStorage: StateStorage = {
   getItem: (name) => {
     const value = window.localStorage.getItem(name);
@@ -73,13 +90,12 @@ const browserMedicineStorage: StateStorage = {
       return value;
     }
 
-    const medicines = extractPersistedMedicines(value);
     const backupValue = window.localStorage.getItem(MEDICINE_BACKUP_STORAGE_KEY);
-    const backupMedicines = extractPersistedMedicines(backupValue);
+    const best = pickBestPersistedSnapshot(value, backupValue);
 
-    if (backupValue && backupMedicines.length > medicines.length) {
-      window.localStorage.setItem(MEDICINE_STORAGE_KEY, backupValue);
-      return backupValue;
+    if (best.usedBackup && best.value) {
+      window.localStorage.setItem(MEDICINE_STORAGE_KEY, best.value);
+      return best.value;
     }
 
     return value;
@@ -90,9 +106,11 @@ const browserMedicineStorage: StateStorage = {
     // startup verification has an up-to-date last-good state after every
     // add / edit / delete.
     window.localStorage.setItem(MEDICINE_BACKUP_STORAGE_KEY, value);
+    notifyMedicineStorageChanged();
   },
   removeItem: (name) => {
     window.localStorage.removeItem(name);
+    notifyMedicineStorageChanged();
   },
 };
 
@@ -229,7 +247,9 @@ export function hasMedicineBackupSnapshot() {
 
 export function readMedicineStorageSnapshot() {
   if (typeof window === "undefined") return [];
-  return extractPersistedMedicines(window.localStorage.getItem(MEDICINE_STORAGE_KEY));
+  const primaryValue = window.localStorage.getItem(MEDICINE_STORAGE_KEY);
+  const backupValue = window.localStorage.getItem(MEDICINE_BACKUP_STORAGE_KEY);
+  return pickBestPersistedSnapshot(primaryValue, backupValue).medicines;
 }
 
 export function readMedicineBackupSnapshot() {
@@ -242,21 +262,42 @@ export function refreshMedicineStoreFromStorage() {
 
   const primaryValue = window.localStorage.getItem(MEDICINE_STORAGE_KEY);
   const backupValue = window.localStorage.getItem(MEDICINE_BACKUP_STORAGE_KEY);
-  const primaryMedicines = extractPersistedMedicines(primaryValue);
-  const backupMedicines = extractPersistedMedicines(backupValue);
-  const shouldUseBackup = !!backupValue && backupMedicines.length > primaryMedicines.length;
-  const medicines = shouldUseBackup ? backupMedicines : primaryMedicines;
+  const hasStoredSnapshot = primaryValue !== null || backupValue !== null;
 
-  if (medicines.length === 0) {
+  if (!hasStoredSnapshot) {
     return false;
   }
 
-  if (shouldUseBackup) {
-    window.localStorage.setItem(MEDICINE_STORAGE_KEY, backupValue);
+  const best = pickBestPersistedSnapshot(primaryValue, backupValue);
+
+  if (best.usedBackup && best.value) {
+    window.localStorage.setItem(MEDICINE_STORAGE_KEY, best.value);
   }
 
-  useMedicineStore.setState({ medicines });
+  useMedicineStore.setState({ medicines: best.medicines });
   return true;
+}
+
+export function subscribeToMedicineStorageRefresh(callback: () => void) {
+  if (typeof window === "undefined") return () => undefined;
+
+  const onStorage = (event: StorageEvent) => {
+    if (
+      event.key === MEDICINE_STORAGE_KEY ||
+      event.key === MEDICINE_BACKUP_STORAGE_KEY ||
+      event.key === null
+    ) {
+      callback();
+    }
+  };
+
+  window.addEventListener(MEDICINE_STORAGE_REFRESH_EVENT, callback);
+  window.addEventListener("storage", onStorage);
+
+  return () => {
+    window.removeEventListener(MEDICINE_STORAGE_REFRESH_EVENT, callback);
+    window.removeEventListener("storage", onStorage);
+  };
 }
 
 export function restoreMedicineBackupSnapshot() {
