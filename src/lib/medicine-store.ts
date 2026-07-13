@@ -39,10 +39,6 @@ interface MedicineStore {
   markFinished: (id: string) => void;
 }
 
-interface PersistedMedicineState {
-  medicines: Medicine[];
-}
-
 function extractPersistedMedicines(value: string | null | undefined): Medicine[] {
   if (!value) return [];
 
@@ -108,50 +104,44 @@ function pickBestPersistedSnapshot(primaryValue: string | null, backupValue: str
   return { value: primaryValue, medicines: primaryMedicines, usedBackup: false };
 }
 
-export const useMedicineStore = create<MedicineStore>()((set) => ({
+export const useMedicineStore = create<MedicineStore>()((set, get) => ({
   medicines: [],
-  add: (m) =>
-    set((s) => {
-      const medicines = [
-        ...s.medicines,
-        {
-          ...m,
-          id: crypto.randomUUID(),
-          createdAt: new Date().toISOString(),
-          finished: false,
-        },
-      ];
-      saveMedicineSnapshot(medicines);
-      return { medicines };
-    }),
-  update: (id, patch) =>
-    set((s) => {
-      const medicines = s.medicines.map((x) => (x.id === id ? { ...x, ...patch } : x));
-      saveMedicineSnapshot(medicines);
-      return { medicines };
-    }),
-  remove: (id) =>
-    set((s) => {
-      const medicines = s.medicines.filter((x) => x.id !== id);
-      saveMedicineSnapshot(medicines);
-      return { medicines };
-    }),
-  markFinished: (id) =>
-    set((s) => {
-      const medicines = s.medicines.map((x) =>
-        x.id === id ? { ...x, finished: true } : x,
-      );
-      saveMedicineSnapshot(medicines);
-      return { medicines };
-    }),
+  add: (m) => {
+    const medicines = [
+      ...get().medicines,
+      {
+        ...m,
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        finished: false,
+      },
+    ];
+    set({ medicines });
+    saveMedicineSnapshot(medicines);
+  },
+  update: (id, patch) => {
+    const medicines = get().medicines.map((x) => (x.id === id ? { ...x, ...patch } : x));
+    set({ medicines });
+    saveMedicineSnapshot(medicines);
+  },
+  remove: (id) => {
+    const medicines = get().medicines.filter((x) => x.id !== id);
+    set({ medicines });
+    saveMedicineSnapshot(medicines);
+  },
+  markFinished: (id) => {
+    const medicines = get().medicines.map((x) =>
+      x.id === id ? { ...x, finished: true } : x,
+    );
+    set({ medicines });
+    saveMedicineSnapshot(medicines);
+  },
 }));
 
-const useSafeLayoutEffect = typeof window !== "undefined" ? useEffect : useEffect;
-
 export function useMedicineStoreHydrated() {
-  const [hydrated, setHydated] = useState(() => typeof window === "undefined");
+  const [hydrated, setHydated] = useState(false);
 
-  useSafeLayoutEffect(() => {
+  useEffect(() => {
     refreshMedicineStoreFromStorage();
     setHydated(true);
   }, []);
