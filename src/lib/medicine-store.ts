@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { create } from "zustand";
-import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
 import type { MedicineType } from "./medicines-db";
 
 export const MEDICINE_STORAGE_KEY = "tinydose-vault-v1";
@@ -40,15 +39,25 @@ interface MedicineStore {
   markFinished: (id: string) => void;
 }
 
-interface PersistedMedicineState {
-  medicines: Medicine[];
-}
-
 function extractPersistedMedicines(value: string | null | undefined): Medicine[] {
   if (!value) return [];
 
   try {
-    const parsed = JSON.parse(value) as { state?: unknown };
+    const parsed = JSON.parse(value) as { state?: unknown; medicines?: unknown } | Medicine[];
+
+    if (Array.isArray(parsed)) {
+      return parsed as Medicine[];
+    }
+
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      "medicines" in parsed &&
+      Array.isArray((parsed as { medicines?: unknown }).medicines)
+    ) {
+      return (parsed as { medicines: Medicine[] }).medicines;
+    }
+
     const state = parsed?.state;
 
     if (
@@ -71,6 +80,19 @@ function notifyMedicineStorageChanged() {
   window.dispatchEvent(new Event(MEDICINE_STORAGE_REFRESH_EVENT));
 }
 
+function createPersistedMedicineValue(medicines: Medicine[]) {
+  return JSON.stringify({ state: { medicines }, version: 1 });
+}
+
+function saveMedicineSnapshot(medicines: Medicine[]) {
+  if (typeof window === "undefined") return;
+
+  const value = createPersistedMedicineValue(medicines);
+  window.localStorage.setItem(MEDICINE_STORAGE_KEY, value);
+  window.localStorage.setItem(MEDICINE_BACKUP_STORAGE_KEY, value);
+  notifyMedicineStorageChanged();
+}
+
 function pickBestPersistedSnapshot(primaryValue: string | null, backupValue: string | null) {
   const primaryMedicines = extractPersistedMedicines(primaryValue);
   const backupMedicines = extractPersistedMedicines(backupValue);
@@ -82,159 +104,46 @@ function pickBestPersistedSnapshot(primaryValue: string | null, backupValue: str
   return { value: primaryValue, medicines: primaryMedicines, usedBackup: false };
 }
 
-const browserMedicineStorage: StateStorage = {
-  getItem: (name) => {
-    const value = window.localStorage.getItem(name);
-
-    if (name !== MEDICINE_STORAGE_KEY) {
-      return value;
-    }
-
-    const backupValue = window.localStorage.getItem(MEDICINE_BACKUP_STORAGE_KEY);
-    const best = pickBestPersistedSnapshot(value, backupValue);
-
-    if (best.usedBackup && best.value) {
-      window.localStorage.setItem(MEDICINE_STORAGE_KEY, best.value);
-      return best.value;
-    }
-
-    return value;
-  },
-  setItem: (name, value) => {
-    window.localStorage.setItem(name, value);
-    // Always mirror the latest persisted state into the backup snapshot so
-    // startup verification has an up-to-date last-good state after every
-    // add / edit / delete.
-    window.localStorage.setItem(MEDICINE_BACKUP_STORAGE_KEY, value);
-    notifyMedicineStorageChanged();
-  },
-  removeItem: (name) => {
-    window.localStorage.removeItem(name);
-    notifyMedicineStorageChanged();
-  },
-};
-
-const noopMedicineStorage: StateStorage = {
-  getItem: () => null,
-  setItem: () => undefined,
-  removeItem: () => undefined,
-};
-
-const medicineStorage = createJSONStorage<PersistedMedicineState>(() =>
-  typeof window !== "undefined" ? browserMedicineStorage : noopMedicineStorage,
-);
-
-export const useMedicineStore = create<MedicineStore>()(
-  persist(
-    (set) => ({
-      medicines: [],
-      add: (m) =>
-        set((s) => ({
-          medicines: [
-            ...s.medicines,
-            {
-              ...m,
-              id: crypto.randomUUID(),
-              createdAt: new Date().toISOString(),
-              finished: false,
-            },
-          ],
-        })),
-      update: (id, patch) =>
-        set((s) => ({
-          medicines: s.medicines.map((x) => (x.id === id ? { ...x, ...patch } : x)),
-        })),
-      remove: (id) =>
-        set((s) => ({ medicines: s.medicines.filter((x) => x.id !== id) })),
-      markFinished: (id) =>
-        set((s) => ({
-          medicines: s.medicines.map((x) =>
-            x.id === id ? { ...x, finished: true } : x,
-          ),
-        })),
-    }),
-    {
-      name: MEDICINE_STORAGE_KEY,
-      storage: medicineStorage,
-      skipHydration: true,
-      partialize: (state) => ({ medicines: state.medicines }),
-      version: 1,
-      migrate: (persistedState) => {
-        if (
-          persistedState &&
-          typeof persistedState === "object" &&
-          "medicines" in persistedState &&
-          Array.isArray((persistedState as { medicines?: unknown }).medicines)
-        ) {
-          return {
-            medicines: (persistedState as { medicines: Medicine[] }).medicines,
-          };
-        }
-
-        return { medicines: [] };
+export const useMedicineStore = create<MedicineStore>()((set, get) => ({
+  medicines: [],
+  add: (m) => {
+    const medicines = [
+      ...get().medicines,
+      {
+        ...m,
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        finished: false,
       },
-      merge: (persistedState, currentState) => ({
-        ...currentState,
-        medicines:
-          persistedState &&
-          typeof persistedState === "object" &&
-          "medicines" in persistedState &&
-          Array.isArray((persistedState as { medicines?: unknown }).medicines)
-            ? (persistedState as PersistedMedicineState).medicines
-            : currentState.medicines,
-      }),
-      onRehydrateStorage: () => (_state, error) => {
-        if (error) {
-          console.error("Failed to rehydrate medicine store", error);
-        }
-      },
-    },
-  ),
-);
+    ];
+    set({ medicines });
+    saveMedicineSnapshot(medicines);
+  },
+  update: (id, patch) => {
+    const medicines = get().medicines.map((x) => (x.id === id ? { ...x, ...patch } : x));
+    set({ medicines });
+    saveMedicineSnapshot(medicines);
+  },
+  remove: (id) => {
+    const medicines = get().medicines.filter((x) => x.id !== id);
+    set({ medicines });
+    saveMedicineSnapshot(medicines);
+  },
+  markFinished: (id) => {
+    const medicines = get().medicines.map((x) =>
+      x.id === id ? { ...x, finished: true } : x,
+    );
+    set({ medicines });
+    saveMedicineSnapshot(medicines);
+  },
+}));
 
 export function useMedicineStoreHydrated() {
-  const [hydrated, setHydated] = useState(() => {
-    if (typeof window === "undefined") return false;
-
-    const persistApi = useMedicineStore.persist;
-    return persistApi?.hasHydrated() ?? true;
-  });
+  const [hydrated, setHydated] = useState(false);
 
   useEffect(() => {
-    const persistApi = useMedicineStore.persist;
-
-    if (!persistApi) {
-      setHydated(true);
-      return;
-    }
-
-    setHydated(persistApi.hasHydrated());
-
-    const unsubHydrate = persistApi.onHydrate(() => setHydated(false));
-    const unsubFinishHydration = persistApi.onFinishHydration(() => setHydated(true));
-
-    const fallback = window.setTimeout(() => {
-      refreshMedicineStoreFromStorage();
-      setHydated(true);
-    }, 1200);
-
-    if (!persistApi.hasHydrated()) {
-      Promise.resolve(persistApi.rehydrate()).finally(() => {
-        window.clearTimeout(fallback);
-        refreshMedicineStoreFromStorage();
-        setHydated(true);
-      });
-    } else {
-      window.clearTimeout(fallback);
-      refreshMedicineStoreFromStorage();
-      setHydated(true);
-    }
-
-    return () => {
-      window.clearTimeout(fallback);
-      unsubHydrate();
-      unsubFinishHydration();
-    };
+    refreshMedicineStoreFromStorage();
+    setHydated(true);
   }, []);
 
   return hydrated;
@@ -310,7 +219,7 @@ export function restoreMedicineBackupSnapshot() {
     return false;
   }
 
-  browserMedicineStorage.setItem(MEDICINE_STORAGE_KEY, backupValue);
+  saveMedicineSnapshot(medicines);
   useMedicineStore.setState({ medicines });
   return true;
 }
