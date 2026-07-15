@@ -12,7 +12,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import {
-  readMedicineBackupSnapshot,
+  readMedicineSafetySnapshot,
   refreshMedicineStoreFromStorage,
   restoreMedicineBackupSnapshot,
   subscribeToMedicineStorageRefresh,
@@ -153,7 +153,7 @@ function RootComponent() {
     refreshMedicineStoreFromStorage();
     const currentCount = useMedicineStore.getState().medicines.length;
 
-    const backupCount = readMedicineBackupSnapshot().length;
+    const backupCount = readMedicineSafetySnapshot().length;
 
     const recoverAction = (target: number) => ({
       label: "Recover",
