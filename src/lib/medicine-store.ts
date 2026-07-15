@@ -4,6 +4,7 @@ import type { MedicineType } from "./medicines-db";
 
 export const MEDICINE_STORAGE_KEY = "tinydose-vault-v1";
 export const MEDICINE_BACKUP_STORAGE_KEY = `${MEDICINE_STORAGE_KEY}:last-good`;
+export const MEDICINE_HISTORY_STORAGE_KEY = `${MEDICINE_STORAGE_KEY}:history`;
 export const MEDICINE_STORAGE_REFRESH_EVENT = `${MEDICINE_STORAGE_KEY}:changed`;
 
 export type MedicineStatus = "safe" | "soon" | "critical" | "expired" | "finished";
@@ -37,6 +38,12 @@ interface MedicineStore {
   update: (id: string, patch: Partial<Medicine>) => void;
   remove: (id: string) => void;
   markFinished: (id: string) => void;
+}
+
+interface PersistedSnapshot {
+  value: string | null;
+  medicines: Medicine[];
+  usedBackup: boolean;
 }
 
 function extractPersistedMedicines(value: string | null | undefined): Medicine[] {
@@ -75,25 +82,63 @@ function extractPersistedMedicines(value: string | null | undefined): Medicine[]
   return [];
 }
 
+function uniqueMedicines(medicines: Medicine[]): Medicine[] {
+  const seen = new Set<string>();
+  const result: Medicine[] = [];
+
+  for (const medicine of medicines) {
+    if (!medicine?.id || seen.has(medicine.id)) continue;
+    seen.add(medicine.id);
+    result.push(medicine);
+  }
+
+  return result;
+}
+
+function getBrowserStorage() {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch (error) {
+    console.error("Medicine storage is unavailable", error);
+    return null;
+  }
+}
+
 function notifyMedicineStorageChanged() {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new Event(MEDICINE_STORAGE_REFRESH_EVENT));
 }
 
 function createPersistedMedicineValue(medicines: Medicine[]) {
-  return JSON.stringify({ state: { medicines }, version: 1 });
+  return JSON.stringify({ state: { medicines: uniqueMedicines(medicines) }, savedAt: new Date().toISOString(), version: 1 });
 }
 
 function saveMedicineSnapshot(medicines: Medicine[]) {
-  if (typeof window === "undefined") return;
+  const storage = getBrowserStorage();
+  if (!storage) return;
 
-  const value = createPersistedMedicineValue(medicines);
-  window.localStorage.setItem(MEDICINE_STORAGE_KEY, value);
-  window.localStorage.setItem(MEDICINE_BACKUP_STORAGE_KEY, value);
+  const cleanMedicines = uniqueMedicines(medicines);
+  const previousSnapshots = [
+    storage.getItem(MEDICINE_STORAGE_KEY),
+    storage.getItem(MEDICINE_BACKUP_STORAGE_KEY),
+    ...readMedicineSafetyHistoryValues(),
+  ].filter(Boolean) as string[];
+
+  const value = createPersistedMedicineValue(cleanMedicines);
+
+  try {
+    storage.setItem(MEDICINE_STORAGE_KEY, value);
+    storage.setItem(MEDICINE_BACKUP_STORAGE_KEY, value);
+    writeMedicineSafetyHistory([value, ...previousSnapshots]);
+  } catch (error) {
+    console.error("Failed to save medicine snapshot", error);
+  }
+
   notifyMedicineStorageChanged();
 }
 
-function pickBestPersistedSnapshot(primaryValue: string | null, backupValue: string | null) {
+function pickBestPersistedSnapshot(primaryValue: string | null, backupValue: string | null): PersistedSnapshot {
   const primaryMedicines = extractPersistedMedicines(primaryValue);
   const backupMedicines = extractPersistedMedicines(backupValue);
 
@@ -104,11 +149,72 @@ function pickBestPersistedSnapshot(primaryValue: string | null, backupValue: str
   return { value: primaryValue, medicines: primaryMedicines, usedBackup: false };
 }
 
+function readMedicineSafetyHistoryValues() {
+  const storage = getBrowserStorage();
+  if (!storage) return [];
+
+  try {
+    const parsed = JSON.parse(storage.getItem(MEDICINE_HISTORY_STORAGE_KEY) ?? "[]") as unknown;
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeMedicineSafetyHistory(values: string[]) {
+  const storage = getBrowserStorage();
+  if (!storage) return;
+
+  const deduped = new Map<string, string>();
+  for (const value of values) {
+    const medicines = extractPersistedMedicines(value);
+    if (medicines.length === 0) continue;
+    const signature = medicines.map((m) => m.id).sort().join("|");
+    if (!deduped.has(signature)) deduped.set(signature, value);
+    if (deduped.size >= 5) break;
+  }
+
+  storage.setItem(MEDICINE_HISTORY_STORAGE_KEY, JSON.stringify([...deduped.values()]));
+}
+
+function getPersistedSnapshot(): PersistedSnapshot {
+  const storage = getBrowserStorage();
+  if (!storage) return { value: null, medicines: [], usedBackup: false };
+
+  return pickBestPersistedSnapshot(
+    storage.getItem(MEDICINE_STORAGE_KEY),
+    storage.getItem(MEDICINE_BACKUP_STORAGE_KEY),
+  );
+}
+
+function getBestSafetySnapshot() {
+  const active = getPersistedSnapshot();
+  const history = readMedicineSafetyHistoryValues()
+    .map((value) => ({ value, medicines: extractPersistedMedicines(value) }))
+    .filter((snapshot) => snapshot.medicines.length > 0)
+    .sort((a, b) => b.medicines.length - a.medicines.length);
+
+  const historicalBest = history[0];
+  if (historicalBest && historicalBest.medicines.length > active.medicines.length) {
+    return { ...historicalBest, fromHistory: true };
+  }
+
+  return { value: active.value, medicines: active.medicines, fromHistory: false };
+}
+
+function getCurrentOrPersistedMedicines(current: Medicine[]) {
+  const persisted = getPersistedSnapshot().medicines;
+  return persisted.length > current.length ? persisted : current;
+}
+
+const initialMedicines = typeof window === "undefined" ? [] : getPersistedSnapshot().medicines;
+
 export const useMedicineStore = create<MedicineStore>()((set, get) => ({
-  medicines: [],
+  medicines: initialMedicines,
   add: (m) => {
+    const baseMedicines = getCurrentOrPersistedMedicines(get().medicines);
     const medicines = [
-      ...get().medicines,
+      ...baseMedicines,
       {
         ...m,
         id: crypto.randomUUID(),
@@ -120,17 +226,20 @@ export const useMedicineStore = create<MedicineStore>()((set, get) => ({
     saveMedicineSnapshot(medicines);
   },
   update: (id, patch) => {
-    const medicines = get().medicines.map((x) => (x.id === id ? { ...x, ...patch } : x));
+    const baseMedicines = getCurrentOrPersistedMedicines(get().medicines);
+    const medicines = baseMedicines.map((x) => (x.id === id ? { ...x, ...patch } : x));
     set({ medicines });
     saveMedicineSnapshot(medicines);
   },
   remove: (id) => {
-    const medicines = get().medicines.filter((x) => x.id !== id);
+    const baseMedicines = getCurrentOrPersistedMedicines(get().medicines);
+    const medicines = baseMedicines.filter((x) => x.id !== id);
     set({ medicines });
     saveMedicineSnapshot(medicines);
   },
   markFinished: (id) => {
-    const medicines = get().medicines.map((x) =>
+    const baseMedicines = getCurrentOrPersistedMedicines(get().medicines);
+    const medicines = baseMedicines.map((x) =>
       x.id === id ? { ...x, finished: true } : x,
     );
     set({ medicines });
@@ -139,7 +248,7 @@ export const useMedicineStore = create<MedicineStore>()((set, get) => ({
 }));
 
 export function useMedicineStoreHydrated() {
-  const [hydrated, setHydated] = useState(false);
+  const [hydrated, setHydated] = useState(() => typeof window !== "undefined");
 
   useEffect(() => {
     refreshMedicineStoreFromStorage();
@@ -150,37 +259,35 @@ export function useMedicineStoreHydrated() {
 }
 
 export function hasMedicineBackupSnapshot() {
-  if (typeof window === "undefined") return false;
-  return extractPersistedMedicines(window.localStorage.getItem(MEDICINE_BACKUP_STORAGE_KEY)).length > 0;
+  return readMedicineBackupSnapshot().length > 0;
 }
 
 export function readMedicineStorageSnapshot() {
-  if (typeof window === "undefined") return [];
-  const primaryValue = window.localStorage.getItem(MEDICINE_STORAGE_KEY);
-  const backupValue = window.localStorage.getItem(MEDICINE_BACKUP_STORAGE_KEY);
-  return pickBestPersistedSnapshot(primaryValue, backupValue).medicines;
+  return getPersistedSnapshot().medicines;
 }
 
 export function readMedicineBackupSnapshot() {
-  if (typeof window === "undefined") return [];
-  return extractPersistedMedicines(window.localStorage.getItem(MEDICINE_BACKUP_STORAGE_KEY));
+  const storage = getBrowserStorage();
+  if (!storage) return [];
+  return extractPersistedMedicines(storage.getItem(MEDICINE_BACKUP_STORAGE_KEY));
+}
+
+export function readMedicineSafetySnapshot() {
+  return getBestSafetySnapshot().medicines;
 }
 
 export function refreshMedicineStoreFromStorage() {
-  if (typeof window === "undefined") return false;
+  const storage = getBrowserStorage();
+  if (!storage) return false;
 
-  const primaryValue = window.localStorage.getItem(MEDICINE_STORAGE_KEY);
-  const backupValue = window.localStorage.getItem(MEDICINE_BACKUP_STORAGE_KEY);
-  const hasStoredSnapshot = primaryValue !== null || backupValue !== null;
-
-  if (!hasStoredSnapshot) {
+  const best = getBestSafetySnapshot();
+  if (best.medicines.length === 0) {
     return false;
   }
 
-  const best = pickBestPersistedSnapshot(primaryValue, backupValue);
-
-  if (best.usedBackup && best.value) {
-    window.localStorage.setItem(MEDICINE_STORAGE_KEY, best.value);
+  if (best.value) {
+    storage.setItem(MEDICINE_STORAGE_KEY, best.value);
+    storage.setItem(MEDICINE_BACKUP_STORAGE_KEY, best.value);
   }
 
   useMedicineStore.setState({ medicines: best.medicines });
@@ -210,12 +317,10 @@ export function subscribeToMedicineStorageRefresh(callback: () => void) {
 }
 
 export function restoreMedicineBackupSnapshot() {
-  if (typeof window === "undefined") return false;
+  const best = getBestSafetySnapshot();
+  const medicines = best.medicines;
 
-  const backupValue = window.localStorage.getItem(MEDICINE_BACKUP_STORAGE_KEY);
-  const medicines = extractPersistedMedicines(backupValue);
-
-  if (medicines.length === 0 || !backupValue) {
+  if (medicines.length === 0) {
     return false;
   }
 
