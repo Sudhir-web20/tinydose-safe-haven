@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import {
   readMedicineSafetySnapshot,
+  medicineStorageInitScript,
   refreshMedicineStoreFromStorage,
   restoreMedicineBackupSnapshot,
   subscribeToMedicineStorageRefresh,
@@ -117,6 +118,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
     ],
     scripts: [
+      { children: medicineStorageInitScript },
       { children: themeInitScript },
     ],
   }),

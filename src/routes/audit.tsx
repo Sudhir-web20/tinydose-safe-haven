@@ -25,20 +25,8 @@ export const Route = createFileRoute("/audit")({
 function AuditPage() {
   const hydrated = useMedicineStoreHydrated();
   const local = useMedicineStore((s) => s.medicines);
-  const fetchSheet = useServerFn(fetchSheetMedicines);
-
-  const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ["sheet-audit"],
-    queryFn: () => fetchSheet(),
-    staleTime: 30_000,
-  });
-
-  const sheetItems = data?.items ?? [];
-  const sheetIds = new Set(sheetItems.map((i) => i.id));
-  const localIds = new Set(local.map((m) => m.id));
-  const missingInSheet = local.filter((m) => !sheetIds.has(m.id));
-  const missingInLocal = sheetItems.filter((i) => !localIds.has(i.id));
-  const inSync = hydrated && !!data && missingInSheet.length === 0 && missingInLocal.length === 0;
+  const safetySnapshot = hydrated ? readMedicineSafetySnapshot() : [];
+  const needsRecovery = hydrated && safetySnapshot.length > local.length;
 
   return (
     <AppShell>

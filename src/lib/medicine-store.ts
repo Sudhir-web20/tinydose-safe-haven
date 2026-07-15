@@ -7,6 +7,8 @@ export const MEDICINE_BACKUP_STORAGE_KEY = `${MEDICINE_STORAGE_KEY}:last-good`;
 export const MEDICINE_HISTORY_STORAGE_KEY = `${MEDICINE_STORAGE_KEY}:history`;
 export const MEDICINE_STORAGE_REFRESH_EVENT = `${MEDICINE_STORAGE_KEY}:changed`;
 
+export const medicineStorageInitScript = `(function(){try{var p='${MEDICINE_STORAGE_KEY}',b='${MEDICINE_BACKUP_STORAGE_KEY}',h='${MEDICINE_HISTORY_STORAGE_KEY}';function meds(v){if(!v)return[];try{var x=JSON.parse(v);if(Array.isArray(x))return x;if(x&&Array.isArray(x.medicines))return x.medicines;if(x&&x.state&&Array.isArray(x.state.medicines))return x.state.medicines;}catch(e){}return[]}var pv=localStorage.getItem(p),bv=localStorage.getItem(b),best=pv,bm=meds(pv);if(meds(bv).length>bm.length){best=bv;bm=meds(bv)}try{var arr=JSON.parse(localStorage.getItem(h)||'[]');if(Array.isArray(arr)){for(var i=0;i<arr.length;i++){var m=meds(arr[i]);if(m.length>bm.length){best=arr[i];bm=m}}}}catch(e){}if(best&&bm.length){localStorage.setItem(p,best);localStorage.setItem(b,best)}}catch(e){}})();`;
+
 export type MedicineStatus = "safe" | "soon" | "critical" | "expired" | "finished";
 
 export interface Reminders {
@@ -248,7 +250,7 @@ export const useMedicineStore = create<MedicineStore>()((set, get) => ({
 }));
 
 export function useMedicineStoreHydrated() {
-  const [hydrated, setHydated] = useState(() => typeof window !== "undefined");
+  const [hydrated, setHydated] = useState(false);
 
   useEffect(() => {
     refreshMedicineStoreFromStorage();
