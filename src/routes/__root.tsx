@@ -12,7 +12,8 @@ import { useEffect, useRef, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import {
-  readMedicineBackupSnapshot,
+  readMedicineSafetySnapshot,
+  medicineStorageInitScript,
   refreshMedicineStoreFromStorage,
   restoreMedicineBackupSnapshot,
   subscribeToMedicineStorageRefresh,
@@ -117,6 +118,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
     ],
     scripts: [
+      { children: medicineStorageInitScript },
       { children: themeInitScript },
     ],
   }),
@@ -153,7 +155,7 @@ function RootComponent() {
     refreshMedicineStoreFromStorage();
     const currentCount = useMedicineStore.getState().medicines.length;
 
-    const backupCount = readMedicineBackupSnapshot().length;
+    const backupCount = readMedicineSafetySnapshot().length;
 
     const recoverAction = (target: number) => ({
       label: "Recover",
