@@ -204,6 +204,15 @@ function getBestSafetySnapshot() {
   return { value: active.value, medicines: active.medicines, fromHistory: false };
 }
 
+function getStartupSnapshot() {
+  const active = getPersistedSnapshot();
+  if (active.medicines.length > 0) {
+    return { value: active.value, medicines: active.medicines, fromHistory: false };
+  }
+
+  return getBestSafetySnapshot();
+}
+
 function getCurrentOrPersistedMedicines(current: Medicine[]) {
   const persisted = getPersistedSnapshot().medicines;
   return persisted.length > current.length ? persisted : current;
@@ -282,7 +291,7 @@ export function refreshMedicineStoreFromStorage() {
   const storage = getBrowserStorage();
   if (!storage) return false;
 
-  const best = getBestSafetySnapshot();
+  const best = getStartupSnapshot();
   if (best.medicines.length === 0) {
     return false;
   }
